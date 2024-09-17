@@ -2,173 +2,168 @@
 
 open TargetCode
 
-let maxDataMem = 10000
+let maxStackMem = 10000
+let maxHeapMem = 10000
 
+type HeapObject =
+    | Basic of int
+    | Closure of code_addr:int * global_vec:int
+    | Function of code_addr:int * argument_vec:int * global_vec:int
+    | Vector of length:int * elems:int array
 let execute (code : Instruction []) : int =
     let mutable PC = 0
     let mutable SP = 0
-    let mutable HP = maxDataMem
+    let mutable GP = 0
     let mutable FP = 1
-    let mutable mem = Array.create maxDataMem 0
+    let S = Array.create maxStackMem 0
+    let H = new ResizeArray<HeapObject>()
+    // add empty global vector
+    H.Add(Vector(0, Array.create 0 0))
 
     // executes the next instruction
     // return - false if the instruction was HALT, and true otherwise
     let step () : bool =
         match code[PC] with
+        | Update ->
+            failwith "todo"
+        | TArg(n) ->
+            failwith "todo"
+        | Rewrite(n) ->
+            failwith "todo"
+        | PushLoc(n) ->
+            S[SP + 1] <- S[SP - n]
+            SP <- SP + 1
+            true
+        | PushGlob(n) ->
+            match H[GP] with
+            | Vector(m, elems) when n < m ->
+                S[SP + 1] <- elems[n]
+                SP <- SP + 1
+                true
+            | Vector(_, _) ->
+                failwith $"fewer than {n} globals"
+            | _ ->
+                failwith "GP references a non-vector"
+        | MkVec(n) ->
+            let array = Array.create n 0
+            H.Add(Vector(n, array))
+            SP <- SP - n + 1
+            for i in 0 .. n do
+                array[i] <- S[SP + i]
+            S[SP] <- H.Count - 1
+            true
+        | MkFunVal(addr) ->
+            failwith "todo"
+        | MkClos(addr) ->
+            failwith "todo"
+        | MkBasic ->
+            H.Add(Basic(S[SP]))
+            S[SP] <- H.Count-1
+            true
+        | GetBasic ->
+            match H[S[SP]] with
+            | Basic(n) ->
+                S[SP] <- n
+                true
+            | _ ->
+                failwith "not basic"
+        | Eval ->
+            failwith "todo"
+        | Apply ->
+            failwith "todo"
         | Halt ->
             false
         | Mul ->
-            mem[SP - 1] <- mem[SP - 1] * mem[SP]
+            S[SP - 1] <- S[SP - 1] * S[SP]
             SP <- SP - 1
             PC <- PC + 1
             true
         | Add ->
-            mem[SP - 1] <- mem[SP - 1] + mem[SP]
+            S[SP - 1] <- S[SP - 1] + S[SP]
             SP <- SP - 1
             PC <- PC + 1
             true
         | Sub ->
-            mem[SP - 1] <- mem[SP - 1] - mem[SP]
+            S[SP - 1] <- S[SP - 1] - S[SP]
             SP <- SP - 1
             PC <- PC + 1
             true
         | Leq ->
-            mem[SP - 1] <- if mem[SP - 1] <= mem[SP] then 1 else 0
+            S[SP - 1] <- if S[SP - 1] <= S[SP] then 1 else 0
             SP <- SP - 1
             PC <- PC + 1
             true
         | Eq ->
-            mem[SP - 1] <- if mem[SP - 1] = mem[SP] then 1 else 0
+            S[SP - 1] <- if S[SP - 1] = S[SP] then 1 else 0
             SP <- SP - 1
             PC <- PC + 1
             true
         | Geq ->
-            mem[SP - 1] <- if mem[SP - 1] >= mem[SP] then 1 else 0
+            S[SP - 1] <- if S[SP - 1] >= S[SP] then 1 else 0
             SP <- SP - 1
             PC <- PC + 1
             true
         | Gt ->
-            mem[SP - 1] <- if mem[SP - 1] > mem[SP] then 1 else 0
+            S[SP - 1] <- if S[SP - 1] > S[SP] then 1 else 0
             SP <- SP - 1
             PC <- PC + 1
             true
         | Lt ->
-            mem[SP - 1] <- if mem[SP - 1] < mem[SP] then 1 else 0
+            S[SP - 1] <- if S[SP - 1] < S[SP] then 1 else 0
             SP <- SP - 1
             PC <- PC + 1
             true
         | Neg ->
-            mem[SP] <- -mem[SP]
-            PC <- PC + 1
-            true
-        | Pop ->
-            SP <- SP - 1
-            PC <- PC + 1
-            true
-        | Dup ->
-            mem[SP + 1] <- mem[SP]
-            SP <- SP + 1
+            S[SP] <- -S[SP]
             PC <- PC + 1
             true
         | LoadC(constantToLoad) ->
             SP <- SP + 1
-            mem[SP] <- constantToLoad
+            S[SP] <- constantToLoad
             PC <- PC + 1
             true
         | Load(numWordsToLoad) ->
             for i in (numWordsToLoad - 1) .. -1 .. 0 do
-                mem[SP + i] <- mem[mem[SP] + i]
+                S[SP + i] <- S[S[SP] + i]
             SP <- SP + numWordsToLoad - 1
-            PC <- PC + 1
-            true
-        | Store(numWordsToStore) ->
-            for i in 0 .. (numWordsToStore - 1) do
-                mem[mem[SP] + i] <- mem[SP - numWordsToStore + i]
-            SP <- SP - 1
             PC <- PC + 1
             true
         | Jump(dest) ->
             PC <- dest
             true
         | JumpZ(dest) ->
-            PC <- if mem[SP] = 0 then dest else (PC + 1)
+            PC <- if S[SP] = 0 then dest else (PC + 1)
             SP <- SP - 1
             true
         | JumpI(jumpOffset) ->
-            PC <- mem[SP] + jumpOffset
+            PC <- S[SP] + jumpOffset
             SP <- SP - 1
-            true
-        | New ->
-            match HP - mem[SP] > EP with
-            | true ->
-                HP <- HP - mem[SP]
-                mem[SP] <- HP
-            | false ->
-                mem[SP] <- 0
-            PC <- PC + 1
             true
         | LoadRC(frameOffset) ->
             SP <- SP + 1
-            mem[SP] <- FP + frameOffset
+            S[SP] <- FP + frameOffset
             PC <- PC + 1
             true
         | LoadR(loadFromFPOffset, numWordsToLoad) ->
             SP <- SP + 1
             let addrToLoadFrom = FP + loadFromFPOffset
             for i in (numWordsToLoad - 1) .. -1 .. 0 do
-                mem[SP + i] <- mem[addrToLoadFrom + i]
+                S[SP + i] <- S[addrToLoadFrom + i]
             SP <- SP + numWordsToLoad - 1
             PC <- PC + 1
             true
-        | StoreR(destOffset, numWordsToStore) ->
-            let destAddr = FP + destOffset
-            for i in 0 .. (numWordsToStore - 1) do
-                mem[destAddr + i] <- mem[SP - (numWordsToStore - 1) + i]
-            PC <- PC + 1
+        | Mark(addr) ->
+            failwith "todo"
+        | Slide(n) ->
+            S[SP - n] <- S[SP]
+            SP <- SP - n
             true
-        | Mark ->
-            mem[SP + 1] <- EP
-            mem[SP + 2] <- FP
-            SP <- SP + 2
-            PC <- PC + 1
-            true
-        | Call ->
-            FP <- SP
-            let tmp = PC
-            PC <- mem[SP]
-            mem[SP] <- tmp + 1
-            true
-        | Slide(slideDistance, numWordsToSlide) ->
-            match slideDistance with
-            | 0 ->
-                PC <- PC + 1
-                true
-            | _ ->
-                if numWordsToSlide = 0 then
-                    SP <- SP - slideDistance
-                else
-                    SP <- SP - slideDistance - numWordsToSlide
-                    for _ in 0 .. (numWordsToSlide - 1) do
-                        SP <- SP + 1
-                        mem[SP] <- mem[SP + slideDistance]
-                PC <- PC + 1
-                true
-        | Alloc(numWords) ->
-            SP <- SP + numWords
-            PC <- PC + 1
-            true
-        | Enter(maxFrameSize) ->
-            EP <- SP + maxFrameSize
-            if EP >= HP then failwith "Stack overflow" else ()
-            PC <- PC + 1
-            true
-        | Return(wordsToRemove) ->
-            PC <- mem[FP]
-            EP <- mem[FP - 2]
-            if EP >= HP then failwith "Stack overflow" else ()
-            SP <- FP - wordsToRemove
-            FP <- mem[FP - 1]
-            true
+        | Alloc(n) ->
+            failwith "todo"
+        | Return(n) ->
+            failwith "todo"
+        | LoadCAddr(addr) ->
+            failwith "The 'LoadCAddr' instruction should be resolved before executing code"
         | SymbolicAddress(_) ->
             failwith "symbolic addresses must be resolved before code execution"
 
