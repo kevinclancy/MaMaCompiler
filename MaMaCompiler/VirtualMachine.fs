@@ -20,6 +20,26 @@ let execute (code : Instruction []) : int =
     // add empty global vector
     H.Add(Vector(0, Array.create 0 0))
 
+    let mkvec0 () : unit =
+        let n = SP - FP
+        let array = Array.create n 0
+        SP <- FP + 1
+        for i in 0 .. n do
+            array[i] <- S[SP + i]
+        H.Add(Vector(n, array))
+        S[SP] <- H.Count - 1
+
+    let wrap () : unit =
+        H.Add(Function(PC - 1, S[SP], GP))
+        S[SP] <- H.Count - 1
+
+    let popenv () : unit =
+        GP <- S[FP - 2]
+        PC <- S[FP]
+        S[FP - 2] <- S[SP]
+        SP <- FP - 2
+        FP <- S[FP - 1]
+
     // executes the next instruction
     // return - false if the instruction was HALT, and true otherwise
     let step () : bool =
@@ -27,7 +47,11 @@ let execute (code : Instruction []) : int =
         | Update ->
             failwith "todo"
         | TArg(n) ->
-            failwith "todo"
+            if SP - FP < n then
+                mkvec0 ()
+                wrap ()
+                popenv ()
+            true
         | Rewrite(n) ->
             failwith "todo"
         | PushLoc(n) ->
@@ -52,8 +76,12 @@ let execute (code : Instruction []) : int =
                 array[i] <- S[SP + i]
             S[SP] <- H.Count - 1
             true
-        | MkFunVal(addr) ->
-            failwith "todo"
+        | MkFunVal(code_addr) ->
+            H.Add(Vector(0, Array.create 0 0))
+            let args_addr = H.Count - 1
+            H.Add(Function(code_addr, args_addr, S[SP]))
+            S[SP] <- H.Count - 1
+            true
         | MkClos(addr) ->
             failwith "todo"
         | MkBasic ->
@@ -70,7 +98,15 @@ let execute (code : Instruction []) : int =
         | Eval ->
             failwith "todo"
         | Apply ->
-            failwith "todo"
+            // to avoid warnings below, maybe I can use an active pattern
+            let (Function(code_addr, args_addr, globals_addr)) = H[S[SP]]
+            let (Vector(n_args, array_args)) = H[args_addr]
+            for i in 0 .. n_args do
+                S[SP + i] <- array_args[i]
+            SP <- SP + n_args - 1
+            GP <- globals_addr
+            PC <- code_addr
+            true
         | Halt ->
             false
         | Mul ->
@@ -152,8 +188,13 @@ let execute (code : Instruction []) : int =
             SP <- SP + numWordsToLoad - 1
             PC <- PC + 1
             true
-        | Mark(addr) ->
-            failwith "todo"
+        | Mark(return_addr) ->
+            S[SP + 1] <- GP
+            S[SP + 2] <- FP
+            S[SP + 3] <- return_addr
+            FP <- SP + 3
+            SP <- SP + 3
+            true
         | Slide(n) ->
             S[SP - n] <- S[SP]
             SP <- SP - n
@@ -170,4 +211,4 @@ let execute (code : Instruction []) : int =
     while step() do
         ()
 
-    mem[1]
+    0
