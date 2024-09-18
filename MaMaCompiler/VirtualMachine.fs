@@ -10,6 +10,9 @@ type HeapObject =
     | Closure of code_addr:int * global_vec:int
     | Function of code_addr:int * argument_vec:int * global_vec:int
     | Vector of length:int * elems:int array
+
+
+
 let execute (code : Instruction []) : int =
     let mutable PC = 0
     let mutable SP = 0
@@ -19,6 +22,44 @@ let execute (code : Instruction []) : int =
     let H = new ResizeArray<HeapObject>()
     // add empty global vector
     H.Add(Vector(0, Array.create 0 0))
+
+    /// Returns heap address of new vector
+    let new_vector (length : int) (elems : int array) : int =
+        H.Add(Vector(length, elems))
+        H.Count - 1
+
+    let new_function (code_addr : int) (argument_vec_addr : int) (global_vec_addr : int) : int =
+        H.Add(Function(code_addr, argument_vec_addr, global_vec_addr))
+        H.Count - 1
+
+    let new_closure (code_addr : int) (global_vec_addr : int) : int =
+        H.Add(Closure(code_addr, global_vec_addr))
+        H.Count - 1
+
+    let new_basic (n : int) : int =
+        H.Add(Basic(n))
+        H.Count - 1
+
+    let (|ExpectFunction|) (fn : HeapObject) : int * int * int =
+        match fn with
+        | Function(code_addr, argument_vec, global_vec) ->
+            (code_addr, argument_vec, global_vec)
+        | _ ->
+            failwith "expected function"
+
+    let (|ExpectVector|) (vector : HeapObject) : int * (int array) =
+        match vector with
+        | Vector(length, elems) ->
+            (length, elems)
+        | _ ->
+            failwith "expected vector"
+
+    let (|ExpectBasic|) (basic : HeapObject) : int =
+        match basic with
+        | Basic(n) ->
+            n
+        | _ ->
+            failwith "expected basic"
 
     let mkvec0 () : unit =
         let n = SP - FP
@@ -40,6 +81,19 @@ let execute (code : Instruction []) : int =
         SP <- FP - 2
         FP <- S[FP - 1]
 
+    let apply () : unit =
+        let (ExpectFunction(code_addr, args_addr, globals_addr)) = H[S[SP]]
+        let (ExpectVector(n_args, array_args)) = H[args_addr]
+        for i in 0 .. n_args do
+            S[SP + i] <- array_args[i]
+        SP <- SP + n_args - 1
+        GP <- globals_addr
+        PC <- code_addr
+
+    let slide (n : int) : unit =
+        S[SP - n] <- S[SP]
+        SP <- SP - n
+
     // executes the next instruction
     // return - false if the instruction was HALT, and true otherwise
     let step () : bool =
@@ -59,53 +113,38 @@ let execute (code : Instruction []) : int =
             SP <- SP + 1
             true
         | PushGlob(n) ->
-            match H[GP] with
-            | Vector(m, elems) when n < m ->
+            let (ExpectVector(m, elems)) = H[GP]
+            if n < m then
                 S[SP + 1] <- elems[n]
                 SP <- SP + 1
                 true
-            | Vector(_, _) ->
+            else
                 failwith $"fewer than {n} globals"
-            | _ ->
-                failwith "GP references a non-vector"
         | MkVec(n) ->
             let array = Array.create n 0
-            H.Add(Vector(n, array))
+            let vec_addr = new_vector n array
             SP <- SP - n + 1
             for i in 0 .. n do
                 array[i] <- S[SP + i]
-            S[SP] <- H.Count - 1
+            S[SP] <- vec_addr
             true
         | MkFunVal(code_addr) ->
-            H.Add(Vector(0, Array.create 0 0))
-            let args_addr = H.Count - 1
-            H.Add(Function(code_addr, args_addr, S[SP]))
-            S[SP] <- H.Count - 1
+            let vec_addr = new_vector 0 (Array.create 0 0)
+            S[SP] <- new_function code_addr vec_addr S[SP]
             true
         | MkClos(addr) ->
             failwith "todo"
         | MkBasic ->
-            H.Add(Basic(S[SP]))
-            S[SP] <- H.Count-1
+            S[SP] <- new_basic S[SP]
             true
         | GetBasic ->
-            match H[S[SP]] with
-            | Basic(n) ->
-                S[SP] <- n
-                true
-            | _ ->
-                failwith "not basic"
+            let (ExpectBasic n) = H[S[SP]]
+            S[SP] <- n
+            true
         | Eval ->
             failwith "todo"
         | Apply ->
-            // to avoid warnings below, maybe I can use an active pattern
-            let (Function(code_addr, args_addr, globals_addr)) = H[S[SP]]
-            let (Vector(n_args, array_args)) = H[args_addr]
-            for i in 0 .. n_args do
-                S[SP + i] <- array_args[i]
-            SP <- SP + n_args - 1
-            GP <- globals_addr
-            PC <- code_addr
+            apply ()
             true
         | Halt ->
             false
@@ -196,13 +235,18 @@ let execute (code : Instruction []) : int =
             SP <- SP + 3
             true
         | Slide(n) ->
-            S[SP - n] <- S[SP]
-            SP <- SP - n
+            slide n
             true
         | Alloc(n) ->
             failwith "todo"
         | Return(n) ->
-            failwith "todo"
+            if SP - FP - 1 = n then
+                popenv ()
+                true
+            else
+                slide n
+                apply ()
+                true
         | LoadCAddr(addr) ->
             failwith "The 'LoadCAddr' instruction should be resolved before executing code"
         | SymbolicAddress(_) ->
