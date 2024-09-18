@@ -47,6 +47,13 @@ let execute (code : Instruction []) : int =
         | _ ->
             failwith "expected function"
 
+    let (|ExpectClosure|) (closure : HeapObject) : int * int =
+        match closure with
+        | Closure(code_addr, global_vec_addr) ->
+            (code_addr, global_vec_addr)
+        | _ ->
+            failwith "expected closure"
+
     let (|ExpectVector|) (vector : HeapObject) : int * (int array) =
         match vector with
         | Vector(length, elems) ->
@@ -81,25 +88,48 @@ let execute (code : Instruction []) : int =
         SP <- FP - 2
         FP <- S[FP - 1]
 
+    let mark (return_addr : int) : unit =
+        S[SP + 1] <- GP
+        S[SP + 2] <- FP
+        S[SP + 3] <- return_addr
+        FP <- SP + 3
+        SP <- SP + 3
+
     let apply () : unit =
         let (ExpectFunction(code_addr, args_addr, globals_addr)) = H[S[SP]]
         let (ExpectVector(n_args, array_args)) = H[args_addr]
-        for i in 0 .. n_args do
+        for i in 0 .. (n_args-1) do
             S[SP + i] <- array_args[i]
         SP <- SP + n_args - 1
         GP <- globals_addr
         PC <- code_addr
 
+    let apply0 () : unit =
+        let (ExpectClosure(code_addr, globals_vec_addr)) = H[S[SP]]
+        GP <- globals_vec_addr
+        PC <- code_addr
+        SP <- SP - 1
+
     let slide (n : int) : unit =
         S[SP - n] <- S[SP]
         SP <- SP - n
+
+    let rewrite (n : int) : unit =
+        H[S[SP - n]] <- H[S[SP]]
+        SP <- SP - 1
+
+    let pushloc (n : int) : unit =
+        S[SP + 1] <- S[SP - n]
+        SP <- SP + 1
 
     // executes the next instruction
     // return - false if the instruction was HALT, and true otherwise
     let step () : bool =
         match code[PC] with
         | Update ->
-            failwith "todo"
+            popenv ()
+            rewrite 1
+            true
         | TArg(n) ->
             if SP - FP < n then
                 mkvec0 ()
@@ -107,10 +137,11 @@ let execute (code : Instruction []) : int =
                 popenv ()
             true
         | Rewrite(n) ->
-            failwith "todo"
+            H[S[SP - n]] <- H[S[SP]]
+            SP <- SP - 1
+            true
         | PushLoc(n) ->
-            S[SP + 1] <- S[SP - n]
-            SP <- SP + 1
+            pushloc n
             true
         | PushGlob(n) ->
             let (ExpectVector(m, elems)) = H[GP]
@@ -124,7 +155,7 @@ let execute (code : Instruction []) : int =
             let array = Array.create n 0
             let vec_addr = new_vector n array
             SP <- SP - n + 1
-            for i in 0 .. n do
+            for i in 0 .. (n - 1) do
                 array[i] <- S[SP + i]
             S[SP] <- vec_addr
             true
@@ -132,8 +163,9 @@ let execute (code : Instruction []) : int =
             let vec_addr = new_vector 0 (Array.create 0 0)
             S[SP] <- new_function code_addr vec_addr S[SP]
             true
-        | MkClos(addr) ->
-            failwith "todo"
+        | MkClos(code_addr) ->
+            S[SP] <- new_closure code_addr S[SP]
+            true
         | MkBasic ->
             S[SP] <- new_basic S[SP]
             true
@@ -142,7 +174,14 @@ let execute (code : Instruction []) : int =
             S[SP] <- n
             true
         | Eval ->
-            failwith "todo"
+            match H[S[SP]] with
+            | Closure(_, _) ->
+                mark PC
+                pushloc 3
+                apply0 ()
+                true
+            | _ ->
+                true
         | Apply ->
             apply ()
             true
@@ -228,17 +267,16 @@ let execute (code : Instruction []) : int =
             PC <- PC + 1
             true
         | Mark(return_addr) ->
-            S[SP + 1] <- GP
-            S[SP + 2] <- FP
-            S[SP + 3] <- return_addr
-            FP <- SP + 3
-            SP <- SP + 3
+            mark return_addr
             true
         | Slide(n) ->
             slide n
             true
         | Alloc(n) ->
-            failwith "todo"
+            for i in 0 .. (n - 1) do
+                S[SP] <- (new_closure (- 1) (- 1))
+            SP <- SP + n
+            true
         | Return(n) ->
             if SP - FP - 1 = n then
                 popenv ()
