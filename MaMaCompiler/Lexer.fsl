@@ -45,6 +45,7 @@ rule token = parse
 | "<"            { LT }
 | ">"            { GT }
 | "<-"           { GETS }
+| "->"           { TO }
 | ";"            { SEMICOLON }
 | ","            { COMMA }
 | "."            { PERIOD }

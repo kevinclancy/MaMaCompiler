@@ -4,8 +4,15 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="lexer.fs" />
+    <Compile Include="Parser.fs" />
+    <Compile Include="Utils.fs" />
+    <Compile Include="Syntax.fs" />
     <Compile Include="TargetCode.fs" />
     <Compile Include="VirtualMachine.fs" />
     <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FsLexYacc.Runtime" Version="11.3.0" />
   </ItemGroup>
 </Project>
