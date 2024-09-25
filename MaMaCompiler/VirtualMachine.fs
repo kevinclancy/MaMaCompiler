@@ -13,7 +13,7 @@ type HeapObject =
 
 
 
-let execute (code : Instruction []) : int =
+let execute (code : Instruction []) : HeapObject =
     let mutable PC = 0
     let mutable SP = 0
     let mutable GP = 0
@@ -129,25 +129,30 @@ let execute (code : Instruction []) : int =
         | Update ->
             popenv ()
             rewrite 1
+            PC <- PC + 1
             true
         | TArg(n) ->
             if SP - FP < n then
                 mkvec0 ()
                 wrap ()
                 popenv ()
+            PC <- PC + 1
             true
         | Rewrite(n) ->
             H[S[SP - n]] <- H[S[SP]]
             SP <- SP - 1
+            PC <- PC + 1
             true
         | PushLoc(n) ->
             pushloc n
+            PC <- PC + 1
             true
         | PushGlob(n) ->
             let (ExpectVector(m, elems)) = H[GP]
             if n < m then
                 S[SP + 1] <- elems[n]
                 SP <- SP + 1
+                PC <- PC + 1
                 true
             else
                 failwith $"fewer than {n} globals"
@@ -158,20 +163,25 @@ let execute (code : Instruction []) : int =
             for i in 0 .. (n - 1) do
                 array[i] <- S[SP + i]
             S[SP] <- vec_addr
+            PC <- PC + 1
             true
         | MkFunVal(code_addr) ->
             let vec_addr = new_vector 0 (Array.create 0 0)
             S[SP] <- new_function code_addr vec_addr S[SP]
+            PC <- PC + 1
             true
         | MkClos(code_addr) ->
             S[SP] <- new_closure code_addr S[SP]
+            PC <- PC + 1
             true
         | MkBasic ->
             S[SP] <- new_basic S[SP]
+            PC <- PC + 1
             true
         | GetBasic ->
             let (ExpectBasic n) = H[S[SP]]
             S[SP] <- n
+            PC <- PC + 1
             true
         | Eval ->
             match H[S[SP]] with
@@ -181,6 +191,7 @@ let execute (code : Instruction []) : int =
                 apply0 ()
                 true
             | _ ->
+                PC <- PC + 1
                 true
         | Apply ->
             apply ()
@@ -268,14 +279,17 @@ let execute (code : Instruction []) : int =
             true
         | Mark(return_addr) ->
             mark return_addr
+            PC <- PC + 1
             true
         | Slide(n) ->
             slide n
+            PC <- PC + 1
             true
         | Alloc(n) ->
             for i in 0 .. (n - 1) do
                 S[SP] <- (new_closure (- 1) (- 1))
             SP <- SP + n
+            PC <- PC + 1
             true
         | Return(n) ->
             if SP - FP - 1 = n then
@@ -293,4 +307,4 @@ let execute (code : Instruction []) : int =
     while step() do
         ()
 
-    0
+    H[1]

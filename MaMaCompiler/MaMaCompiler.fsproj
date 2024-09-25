@@ -11,6 +11,7 @@
     <Compile Include="GenComputation.fs" />
     <Compile Include="Environment.fs" />
     <Compile Include="TargetCode.fs" />
+    <Compile Include="AddressResolution.fs" />
     <Compile Include="GenCode.fs" />
     <Compile Include="VirtualMachine.fs" />
     <Compile Include="Program.fs" />

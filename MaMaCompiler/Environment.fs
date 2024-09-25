@@ -14,3 +14,5 @@ type VarContextEntry = {
 type Context = {
     varCtxt : Map<string, VarContextEntry>
 }
+    with
+        static member Empty = { varCtxt = Map.empty }

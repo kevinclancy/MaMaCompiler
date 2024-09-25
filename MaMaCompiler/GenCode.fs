@@ -50,7 +50,28 @@ and binOpV (ctxt : Context) (e1 : Expr) (e2 : Expr) (instr : Instruction) (stack
     }
 
 and codeC (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Instruction>> =
-    failwith "todo"
+    gen {
+            let freeVarList = Set.toList expr.FreeVars
+            let! globalVars =
+                letAll <| List.mapi (fun i varName -> getVar ctxt varName noRange (stackLevel + i)) freeVarList
+            let pushGlobals = List.map snd globalVars
+            let! tyExpr, codeExpr = codeV ctxt expr 0
+            let! executeClosureAddr = getFreshSymbolicAddr
+            let! afterAddr = getFreshSymbolicAddr
+            return (
+                tyExpr,
+                List.concat [
+                    pushGlobals
+                    [MkVec globalVars.Length]
+                    [MkClos executeClosureAddr]
+                    [Jump afterAddr]
+                    [SymbolicAddress executeClosureAddr]
+                    codeExpr
+                    [Update]
+                    [SymbolicAddress afterAddr]
+                ]
+            )
+    }
 
 and codeB (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Instruction>> =
     match expr with
