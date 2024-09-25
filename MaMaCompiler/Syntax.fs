@@ -7,6 +7,21 @@ type Ty =
     | FunTy of dom:Ty * cod:Ty * Range
 
     with
+        member this.Apply (n : int) : Ty =
+            match (n, this) with
+            | (0, _) ->
+                this
+            | (_, FunTy(dom, cod, _)) ->
+                cod.Apply (n - 1)
+            | _ ->
+                failwith "applied function type to too many args"
+
+        member this.DomTyList : List<Ty> =
+            match this with
+            | FunTy(dom, cod, _) ->
+                dom :: cod.DomTyList
+            | _ ->
+                []
 
         static member IsEqual (tyA : Ty) (tyB : Ty) : bool =
             match (tyA, tyB) with

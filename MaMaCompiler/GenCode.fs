@@ -209,3 +209,38 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                 ]
             )
         }
+    | Application(fnExpr, args, _) ->
+        gen {
+            let! tyFun, codeFun = codeV ctxt fnExpr (stackLevel + args.Length + 3)
+            let! tyCodeArgs = letAll <| List.mapi (fun i e -> codeC ctxt e (stackLevel + 3 + i)) args
+            let formalTys = tyFun.DomTyList
+            do!
+                if formalTys.Length < tyCodeArgs.Length then
+                    error $"expected applied expression to have function type" fnExpr.Range
+                else
+                    pass
+            let usedFormalTys = List.take tyCodeArgs.Length formalTys
+            let checkEq (actual : Expr) ((tyActual, _) : Ty * List<Instruction>) (tyFormal : Ty) : Gen<Unit> =
+                gen {
+                    do!
+                        if Ty.IsEqual tyActual tyFormal then
+                            pass
+                        else
+                            error $"expected type of actual argument to match type of formal argument" actual.Range
+                    return ()
+                }
+            do!
+                doAll <| List.map3 checkEq args tyCodeArgs usedFormalTys
+            let pushArgs = tyCodeArgs |> List.rev |> (List.map snd) |> List.concat
+            let! afterAddr = getFreshSymbolicAddr
+            return (
+                tyFun.Apply args.Length,
+                List.concat [
+                    [Mark afterAddr]
+                    pushArgs
+                    codeFun
+                    [Apply]
+                    [SymbolicAddress afterAddr]
+                ]
+            )
+        }

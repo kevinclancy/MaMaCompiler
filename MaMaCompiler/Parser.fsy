@@ -4,9 +4,6 @@ open Syntax
 
 %}
 
-%start prog
-%type <Prog> prog
-
 %start expr
 %type <Expr> expr
 
@@ -17,6 +14,7 @@ open Syntax
 %token PLUS MINUS TIMES LEQ GEQ LT GT GETS SEMICOLON IF ELSE THEN EQ IN LET
 %token WHILE FOR SWITCH CASE DEFAULT COLON STRUCT BREAK COMMA PERIOD
 %token NEW AMPERSAND RIGHTARROW DELETE RETURN VOID EOF FUN TYPEDEF TO
+%token NIL CONS REC AND WITH MATCH
 
 %right GETS
 
@@ -43,15 +41,15 @@ Expr : Expr PLUS Expr  %prec PLUS  { Plus($1, $3, parseState.ResultRange) }
      | Expr GEQ Expr   %prec GEQ   { Geq($1, $3, parseState.ResultRange) }
      | Expr LT Expr    %prec LT    { Lt($1, $3, parseState.ResultRange) }
      | Expr GT Expr    %prec GT    { Gt($1, $3, parseState.ResultRange) }
-     | INT { IntLiteral($1, parseState.ResultRange) }
+     | INT { Int($1, parseState.ResultRange) }
      | ID { Var($1, parseState.ResultRange) }
      | LPAREN Expr RPAREN { $2 }
      | LPAREN FUN FormalList TO Expr RPAREN { FunAbstraction($3, $5, parseState.ResultRange) }
      | LET ID EQ Expr IN Expr %prec LET { Let($2, $4, $6, parseState.ResultRange) }
      | LPAREN Expr ExprList RPAREN { Application($2, $3, parseState.ResultRange) }
-     | IF Expr THEN Expr ELSE Expr %prec IF { IfThenElse($2, $4, $6) }
+     | IF Expr THEN Expr ELSE Expr %prec IF { IfThenElse($2, $4, $6, parseState.ResultRange) }
 
-Formal : LPAREN ID COLON Type RPAREN { { name = $1 ; ty = $3 } }
+Formal : LPAREN ID COLON Type RPAREN { { name = $2 ; ty = $4 } }
 
 FormalList : Formal COMMA FormalList { $1 :: $3 }
            | Formal                  { [$1] }
@@ -59,7 +57,7 @@ FormalList : Formal COMMA FormalList { $1 :: $3 }
 ExprList : Expr { [$1] }
          | Expr ExprList { $1 :: $2 }
 
-Type : TYPEINT { Int(parseState.ResultRange) }
+Type : TYPEINT { IntTy(parseState.ResultRange) }
      | Type TO Type { FunTy($1, $3, parseState.ResultRange) }
 
 prog : Expr EOF { $1 }

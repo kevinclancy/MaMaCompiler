@@ -4,11 +4,11 @@
     <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="lexer.fs" />
-    <Compile Include="Parser.fs" />
     <Compile Include="Utils.fs" />
-    <Compile Include="GenComputation.fs" />
     <Compile Include="Syntax.fs" />
+    <Compile Include="Parser.fs" />
+    <Compile Include="lexer.fs" />
+    <Compile Include="GenComputation.fs" />
     <Compile Include="Environment.fs" />
     <Compile Include="TargetCode.fs" />
     <Compile Include="GenCode.fs" />
