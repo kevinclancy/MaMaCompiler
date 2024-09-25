@@ -19,7 +19,7 @@ type Fixture () =
         ()
 
     [<Test>]
-    member this.durrr () =
+    member this.someTwoInts () =
         let e = parseExpr "3 + 2"
         let ty, code =
             match run (codeV Context.Empty e 0) with
