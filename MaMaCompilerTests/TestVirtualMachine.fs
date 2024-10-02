@@ -25,8 +25,8 @@ type Fixture () =
             match run (codeV Context.Empty e 0) with
             | Result(code, _) ->
                 code
-            | Error(_, _) ->
-                failwith "code generation failed"
+            | Error(msg, _) ->
+                failwith $"code generation failed: {msg}"
         match ty with
         | IntTy(_) ->
             ()
@@ -42,22 +42,22 @@ type Fixture () =
             failwith "expected result 5"
         ()
 
-    // [<Test>]
-    // member this.testApply () =
-    //     let e = parseExpr "((fun x y -> x + y) 3 2)"
-    //     let ty, code =
-    //         match run (codeV Context.Empty e 0) with
-    //         | Result(code, _) ->
-    //             code
-    //         | Error(_, _) ->
-    //             failwith "code generation failed"
+// ((fun (x : int) (y : int) -> x + y) 3 2)
+    [<Test>]
+    member this.testApply () =
+        let e = parseExpr "((fun (x : int) (y : int) -> x + y) 3 2)"
+        let ty, code =
+            match run (codeV Context.Empty e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith $"code generation failed: {msg}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'Int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
 
-    //     match ty with
-    //     | IntTy(_) ->
-    //         ()
-    //     | _ ->
-    //         failwith "expected output of type 'Int'"
-    //     let code' = resolve code
-    //     let result = execute code'
-
-    //     Assert.That( (result = 5) )
+        Assert.That( (result = Basic(5)) )

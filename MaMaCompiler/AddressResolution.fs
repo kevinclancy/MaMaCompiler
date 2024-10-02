@@ -20,6 +20,12 @@ let resolve (instructions : List<Instruction>) : Instruction [] =
     for i in 0 .. (result.Count - 1) do
         result[i] <-
             match result[i] with
+            | MkFunVal addr ->
+                MkFunVal addrMap[addr]
+            | MkClos addr ->
+                MkClos addrMap[addr]
+            | Mark addr ->
+                Mark addrMap[addr]
             | Jump addr ->
                 Jump addrMap[addr]
             | JumpZ addr ->

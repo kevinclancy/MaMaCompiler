@@ -207,13 +207,20 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         }
     | FunAbstraction(formals, body, rng) ->
         gen {
-            let freeVarList = Set.toList body.FreeVars
+            let freeVarList = Set.toList expr.FreeVars
             let! globalVars =
                 letAll <| List.mapi (fun i varName -> getVar ctxt varName rng (stackLevel + i)) freeVarList
             let pushGlobals = List.map snd globalVars
             let! callStartAddr = getFreshSymbolicAddr
             let! afterAddr = getFreshSymbolicAddr
-            let! bodyTy, bodyCode = codeV ctxt body 0
+            let addFormalToContext (ctxt : Context) (i : int)  (f : Formal) : Context =
+                let entry = {
+                    address = Local(-i)
+                    ty = f.ty
+                }
+                { ctxt with varCtxt = ctxt.varCtxt.Add(f.name, entry) }
+            let ctxt' = List.fold2 addFormalToContext ctxt [0..formals.Length-1] formals
+            let! bodyTy, bodyCode = codeV ctxt' body 0
             let funTy = List.fold (fun (ty : Ty) (f : Formal) -> FunTy(f.ty, ty, noRange)) bodyTy formals
             return (
                 funTy,

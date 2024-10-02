@@ -51,8 +51,8 @@ Expr : Expr PLUS Expr  %prec PLUS  { Plus($1, $3, parseState.ResultRange) }
 
 Formal : LPAREN ID COLON Type RPAREN { { name = $2 ; ty = $4 } }
 
-FormalList : Formal COMMA FormalList { $1 :: $3 }
-           | Formal                  { [$1] }
+FormalList : Formal FormalList { $1 :: $2 }
+           | Formal            { [$1] }
 
 ExprList : Expr { [$1] }
          | Expr ExprList { $1 :: $2 }

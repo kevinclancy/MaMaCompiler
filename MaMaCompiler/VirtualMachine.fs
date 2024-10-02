@@ -307,4 +307,4 @@ let execute (code : Instruction []) : HeapObject =
     while step() do
         ()
 
-    H[1]
+    H[S[1]]
