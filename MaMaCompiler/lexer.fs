@@ -1,5 +1,5 @@
 
-# 1 "Lexer.fsl"
+# 1 "lexer.fsl"
  
 module Lexer
 
@@ -24,7 +24,7 @@ let removeQuotes (str : string) : string =
     str.Substring(1,str.Length-2)
 
 
-# 27 "Lexer.fs"
+# 27 "lexer.fs"
 let trans : uint16[] array = 
     [| 
     (* State 0 *)
@@ -264,271 +264,276 @@ let trans : uint16[] array =
     (* State 117 *)
      [| 65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;|];
     |] 
-let actions : uint16[] = [|65535us;1us;2us;2us;1us;65535us;65535us;0us;65535us;0us;65535us;1us;2us;3us;4us;5us;65535us;36us;8us;9us;10us;65535us;14us;15us;18us;19us;20us;45us;45us;45us;45us;45us;45us;45us;45us;45us;45us;45us;45us;45us;45us;65535us;45us;46us;47us;46us;45us;44us;45us;45us;45us;45us;45us;43us;45us;45us;42us;45us;45us;45us;34us;45us;45us;45us;45us;45us;33us;45us;45us;32us;45us;45us;45us;45us;45us;38us;45us;45us;45us;31us;45us;45us;40us;30us;45us;45us;28us;45us;26us;45us;45us;45us;45us;29us;45us;25us;45us;45us;45us;24us;45us;23us;45us;45us;45us;35us;22us;27us;37us;45us;21us;13us;12us;16us;11us;17us;7us;6us;|]
+let actions : uint16[] = [|65535us;1us;2us;2us;1us;65535us;65535us;0us;65535us;0us;65535us;1us;2us;3us;4us;5us;65535us;37us;8us;9us;10us;11us;15us;16us;19us;20us;21us;46us;46us;46us;46us;46us;46us;46us;46us;46us;46us;46us;46us;46us;46us;65535us;46us;47us;48us;47us;46us;45us;46us;46us;46us;46us;46us;44us;46us;46us;43us;46us;46us;46us;35us;46us;46us;46us;46us;46us;34us;46us;46us;33us;46us;46us;46us;46us;46us;39us;46us;46us;46us;32us;46us;46us;41us;31us;46us;46us;29us;46us;27us;46us;46us;46us;46us;30us;46us;26us;46us;46us;46us;25us;46us;24us;46us;46us;46us;36us;23us;28us;38us;46us;22us;14us;13us;17us;12us;18us;7us;6us;|]
 let _fslex_tables = FSharp.Text.Lexing.UnicodeTables.Create(trans,actions)
 let rec _fslex_dummy () = _fslex_dummy() 
 // Rule token
 and token  lexbuf =
   match _fslex_tables.Interpret(8,lexbuf) with
   | 0 -> ( 
-# 31 "Lexer.fsl"
+# 31 "lexer.fsl"
                                   newline lexbuf ; lastComment <- "" ; token lexbuf  
-# 276 "Lexer.fs"
+# 276 "lexer.fs"
           )
   | 1 -> ( 
-# 32 "Lexer.fsl"
+# 32 "lexer.fsl"
                                   token lexbuf 
-# 281 "Lexer.fs"
+# 281 "lexer.fs"
           )
   | 2 -> ( 
-# 33 "Lexer.fsl"
+# 33 "lexer.fsl"
                                   LPAREN 
-# 286 "Lexer.fs"
+# 286 "lexer.fs"
           )
   | 3 -> ( 
-# 34 "Lexer.fsl"
+# 34 "lexer.fsl"
                                   RPAREN 
-# 291 "Lexer.fs"
+# 291 "lexer.fs"
           )
   | 4 -> ( 
-# 35 "Lexer.fsl"
+# 35 "lexer.fsl"
                                   LBRACK 
-# 296 "Lexer.fs"
+# 296 "lexer.fs"
           )
   | 5 -> ( 
-# 36 "Lexer.fsl"
+# 36 "lexer.fsl"
                                   RBRACK 
-# 301 "Lexer.fs"
+# 301 "lexer.fs"
           )
   | 6 -> ( 
-# 37 "Lexer.fsl"
+# 37 "lexer.fsl"
                                   NIL 
-# 306 "Lexer.fs"
+# 306 "lexer.fs"
           )
   | 7 -> ( 
-# 38 "Lexer.fsl"
+# 38 "lexer.fsl"
                                   CONS 
-# 311 "Lexer.fs"
+# 311 "lexer.fs"
           )
   | 8 -> ( 
-# 39 "Lexer.fsl"
+# 39 "lexer.fsl"
                                   PLUS 
-# 316 "Lexer.fs"
+# 316 "lexer.fs"
           )
   | 9 -> ( 
-# 40 "Lexer.fsl"
+# 40 "lexer.fsl"
                                   MINUS 
-# 321 "Lexer.fs"
+# 321 "lexer.fs"
           )
   | 10 -> ( 
-# 41 "Lexer.fsl"
+# 41 "lexer.fsl"
                                   TIMES 
-# 326 "Lexer.fs"
+# 326 "lexer.fs"
           )
   | 11 -> ( 
-# 42 "Lexer.fsl"
-                                  EQ 
-# 331 "Lexer.fs"
+# 42 "lexer.fsl"
+                                  BIND 
+# 331 "lexer.fs"
           )
   | 12 -> ( 
-# 43 "Lexer.fsl"
-                           LEQ 
-# 336 "Lexer.fs"
+# 43 "lexer.fsl"
+                                  EQ 
+# 336 "lexer.fs"
           )
   | 13 -> ( 
-# 44 "Lexer.fsl"
-                                  GEQ 
-# 341 "Lexer.fs"
+# 44 "lexer.fsl"
+                           LEQ 
+# 341 "lexer.fs"
           )
   | 14 -> ( 
-# 45 "Lexer.fsl"
-                                  LT 
-# 346 "Lexer.fs"
+# 45 "lexer.fsl"
+                                  GEQ 
+# 346 "lexer.fs"
           )
   | 15 -> ( 
-# 46 "Lexer.fsl"
-                                  GT 
-# 351 "Lexer.fs"
+# 46 "lexer.fsl"
+                                  LT 
+# 351 "lexer.fs"
           )
   | 16 -> ( 
-# 47 "Lexer.fsl"
-                                  GETS 
-# 356 "Lexer.fs"
+# 47 "lexer.fsl"
+                                  GT 
+# 356 "lexer.fs"
           )
   | 17 -> ( 
-# 48 "Lexer.fsl"
-                                  TO 
-# 361 "Lexer.fs"
+# 48 "lexer.fsl"
+                                  GETS 
+# 361 "lexer.fs"
           )
   | 18 -> ( 
-# 49 "Lexer.fsl"
-                                  SEMICOLON 
-# 366 "Lexer.fs"
+# 49 "lexer.fsl"
+                                  TO 
+# 366 "lexer.fs"
           )
   | 19 -> ( 
-# 50 "Lexer.fsl"
-                                  COMMA 
-# 371 "Lexer.fs"
+# 50 "lexer.fsl"
+                                  SEMICOLON 
+# 371 "lexer.fs"
           )
   | 20 -> ( 
-# 51 "Lexer.fsl"
-                                  PERIOD 
-# 376 "Lexer.fs"
+# 51 "lexer.fsl"
+                                  COMMA 
+# 376 "lexer.fs"
           )
   | 21 -> ( 
-# 52 "Lexer.fsl"
-                                  LET 
-# 381 "Lexer.fs"
+# 52 "lexer.fsl"
+                                  PERIOD 
+# 381 "lexer.fs"
           )
   | 22 -> ( 
-# 53 "Lexer.fsl"
-                                  IN 
-# 386 "Lexer.fs"
+# 53 "lexer.fsl"
+                                  LET 
+# 386 "lexer.fs"
           )
   | 23 -> ( 
-# 54 "Lexer.fsl"
-                                  REC 
-# 391 "Lexer.fs"
+# 54 "lexer.fsl"
+                                  IN 
+# 391 "lexer.fs"
           )
   | 24 -> ( 
-# 55 "Lexer.fsl"
-                                  MATCH 
-# 396 "Lexer.fs"
+# 55 "lexer.fsl"
+                                  REC 
+# 396 "lexer.fs"
           )
   | 25 -> ( 
-# 56 "Lexer.fsl"
-                                  WITH 
-# 401 "Lexer.fs"
+# 56 "lexer.fsl"
+                                  MATCH 
+# 401 "lexer.fs"
           )
   | 26 -> ( 
-# 57 "Lexer.fsl"
-                                  AND 
-# 406 "Lexer.fs"
+# 57 "lexer.fsl"
+                                  WITH 
+# 406 "lexer.fs"
           )
   | 27 -> ( 
-# 58 "Lexer.fsl"
-                                  IF 
-# 411 "Lexer.fs"
+# 58 "lexer.fsl"
+                                  AND 
+# 411 "lexer.fs"
           )
   | 28 -> ( 
-# 59 "Lexer.fsl"
-                                  ELSE 
-# 416 "Lexer.fs"
+# 59 "lexer.fsl"
+                                  IF 
+# 416 "lexer.fs"
           )
   | 29 -> ( 
-# 60 "Lexer.fsl"
-                                  WHILE 
-# 421 "Lexer.fs"
+# 60 "lexer.fsl"
+                                  ELSE 
+# 421 "lexer.fs"
           )
   | 30 -> ( 
-# 61 "Lexer.fsl"
-                                  FOR 
-# 426 "Lexer.fs"
+# 61 "lexer.fsl"
+                                  WHILE 
+# 426 "lexer.fs"
           )
   | 31 -> ( 
-# 62 "Lexer.fsl"
-                                  SWITCH 
-# 431 "Lexer.fs"
+# 62 "lexer.fsl"
+                                  FOR 
+# 431 "lexer.fs"
           )
   | 32 -> ( 
-# 63 "Lexer.fsl"
-                                  CASE 
-# 436 "Lexer.fs"
+# 63 "lexer.fsl"
+                                  SWITCH 
+# 436 "lexer.fs"
           )
   | 33 -> ( 
-# 64 "Lexer.fsl"
-                                  DEFAULT 
-# 441 "Lexer.fs"
+# 64 "lexer.fsl"
+                                  CASE 
+# 441 "lexer.fs"
           )
   | 34 -> ( 
-# 65 "Lexer.fsl"
-                                  BREAK 
-# 446 "Lexer.fs"
+# 65 "lexer.fsl"
+                                  DEFAULT 
+# 446 "lexer.fs"
           )
   | 35 -> ( 
-# 66 "Lexer.fsl"
-                                  RETURN 
-# 451 "Lexer.fs"
+# 66 "lexer.fsl"
+                                  BREAK 
+# 451 "lexer.fs"
           )
   | 36 -> ( 
-# 67 "Lexer.fsl"
-                                  COLON 
-# 456 "Lexer.fs"
+# 67 "lexer.fsl"
+                                  RETURN 
+# 456 "lexer.fs"
           )
   | 37 -> ( 
-# 68 "Lexer.fsl"
-                                  TYPEINT 
-# 461 "Lexer.fs"
+# 68 "lexer.fsl"
+                                  COLON 
+# 461 "lexer.fs"
           )
   | 38 -> ( 
-# 69 "Lexer.fsl"
-                                  STRUCT 
-# 466 "Lexer.fs"
+# 69 "lexer.fsl"
+                                  TYPEINT 
+# 466 "lexer.fs"
           )
   | 39 -> ( 
-# 70 "Lexer.fsl"
-                                  RIGHTARROW 
-# 471 "Lexer.fs"
+# 70 "lexer.fsl"
+                                  STRUCT 
+# 471 "lexer.fs"
           )
   | 40 -> ( 
-# 71 "Lexer.fsl"
-                                  FUN 
-# 476 "Lexer.fs"
+# 71 "lexer.fsl"
+                                  RIGHTARROW 
+# 476 "lexer.fs"
           )
   | 41 -> ( 
-# 72 "Lexer.fsl"
-                                  TYPEINT 
-# 481 "Lexer.fs"
+# 72 "lexer.fsl"
+                                  FUN 
+# 481 "lexer.fs"
           )
   | 42 -> ( 
-# 73 "Lexer.fsl"
-                                  VOID 
-# 486 "Lexer.fs"
+# 73 "lexer.fsl"
+                                  TYPEINT 
+# 486 "lexer.fs"
           )
   | 43 -> ( 
-# 74 "Lexer.fsl"
-                                  TYPEDEF 
-# 491 "Lexer.fs"
+# 74 "lexer.fsl"
+                                  VOID 
+# 491 "lexer.fs"
           )
   | 44 -> ( 
-# 75 "Lexer.fsl"
-                                  lastComment <- "" ; comment lexbuf 
-# 496 "Lexer.fs"
+# 75 "lexer.fsl"
+                                  TYPEDEF 
+# 496 "lexer.fs"
           )
   | 45 -> ( 
-# 76 "Lexer.fsl"
-                                                            ID(lexeme lexbuf) 
-# 501 "Lexer.fs"
+# 76 "lexer.fsl"
+                                  lastComment <- "" ; comment lexbuf 
+# 501 "lexer.fs"
           )
   | 46 -> ( 
-# 77 "Lexer.fsl"
-                                                            INT (Int32.Parse(lexeme lexbuf)) 
-# 506 "Lexer.fs"
+# 77 "lexer.fsl"
+                                                            ID(lexeme lexbuf) 
+# 506 "lexer.fs"
           )
   | 47 -> ( 
-# 78 "Lexer.fsl"
+# 78 "lexer.fsl"
+                                                            INT (Int32.Parse(lexeme lexbuf)) 
+# 511 "lexer.fs"
+          )
+  | 48 -> ( 
+# 79 "lexer.fsl"
                                   EOF 
-# 511 "Lexer.fs"
+# 516 "lexer.fs"
           )
   | _ -> failwith "token"
 // Rule comment
 and comment  lexbuf =
   match _fslex_tables.Interpret(0,lexbuf) with
   | 0 -> ( 
-# 81 "Lexer.fsl"
+# 82 "lexer.fsl"
                                               newline lexbuf ; lastComment <- lastComment + "\n" ; comment lexbuf 
-# 520 "Lexer.fs"
+# 525 "lexer.fs"
           )
   | 1 -> ( 
-# 82 "Lexer.fsl"
+# 83 "lexer.fsl"
                            newline lexbuf ; token lexbuf
-# 525 "Lexer.fs"
+# 530 "lexer.fs"
           )
   | 2 -> ( 
-# 83 "Lexer.fsl"
+# 84 "lexer.fsl"
                      lastComment <- lastComment + (lexeme lexbuf); comment lexbuf 
-# 530 "Lexer.fs"
+# 535 "lexer.fs"
           )
   | _ -> failwith "comment"
 
-# 3000000 "Lexer.fs"
+# 3000000 "lexer.fs"

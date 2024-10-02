@@ -42,7 +42,6 @@ type Fixture () =
             failwith "expected result 5"
         ()
 
-// ((fun (x : int) (y : int) -> x + y) 3 2)
     [<Test>]
     member this.testApply () =
         let e = parseExpr "((fun (x : int) (y : int) -> x + y) 3 2)"
@@ -61,3 +60,116 @@ type Fixture () =
         let result = execute code'
 
         Assert.That( (result = Basic(5)) )
+
+    [<Test>]
+
+    member this.testLet () =
+        let e = parseExpr """
+        let a = (fun (x : int) (y : int) -> x + y) in
+        (a 3 2)
+        """
+        let ty, code =
+            match run (codeV Context.Empty e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith $"code generation failed: {msg}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'Int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(5)) )
+
+    [<Test>]
+
+    member this.testCallAndUse () =
+        let e = parseExpr """
+        let a = (fun (x : int) (y : int) -> x + y) in
+        ((a 3 2) + 1)
+        """
+        let ty, code =
+            match run (codeV Context.Empty e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith $"code generation failed: {msg}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'Int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(6)) )
+
+    [<Test>]
+
+    member this.testMultiCall () =
+        let e = parseExpr """
+        let a = (fun (x : int) (y : int) -> x + y) in
+        (a (3 + 2) 1)
+        """
+        let ty, code =
+            match run (codeV Context.Empty e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith $"code generation failed: {msg}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'Int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(6)) )
+
+    [<Test>]
+    member this.testTwoCalls () =
+        let e = parseExpr """
+        let a = (fun (x : int) (y : int) -> x + y) in
+        ((a 3 2) + (a 1 4))
+        """
+        let ty, code =
+            match run (codeV Context.Empty e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith $"code generation failed: {msg}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'Int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(10)) )
+
+    [<Test>]
+    member this.testCallArg () =
+        let e = parseExpr """
+        let a = (fun (x : int) (y : int) -> x + y) in
+        (a (a 3 2) 1)
+        """
+        let ty, code =
+            match run (codeV Context.Empty e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith $"code generation failed: {msg}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'Int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(6)) )

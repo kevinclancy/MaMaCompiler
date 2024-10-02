@@ -14,7 +14,7 @@ open Syntax
 %token PLUS MINUS TIMES LEQ GEQ LT GT GETS SEMICOLON IF ELSE THEN EQ IN LET
 %token WHILE FOR SWITCH CASE DEFAULT COLON STRUCT BREAK COMMA PERIOD
 %token NEW AMPERSAND RIGHTARROW DELETE RETURN VOID EOF FUN TYPEDEF TO
-%token NIL CONS REC AND WITH MATCH
+%token NIL CONS REC AND WITH MATCH BIND
 
 %right GETS
 
@@ -45,7 +45,7 @@ Expr : Expr PLUS Expr  %prec PLUS  { Plus($1, $3, parseState.ResultRange) }
      | ID { Var($1, parseState.ResultRange) }
      | LPAREN Expr RPAREN { $2 }
      | LPAREN FUN FormalList TO Expr RPAREN { FunAbstraction($3, $5, parseState.ResultRange) }
-     | LET ID EQ Expr IN Expr %prec LET { Let($2, $4, $6, parseState.ResultRange) }
+     | LET ID BIND Expr IN Expr %prec LET { Let($2, $4, $6, parseState.ResultRange) }
      | LPAREN Expr ExprList RPAREN { Application($2, $3, parseState.ResultRange) }
      | IF Expr THEN Expr ELSE Expr %prec IF { IfThenElse($2, $4, $6, parseState.ResultRange) }
 

@@ -39,6 +39,7 @@ rule token = parse
 | "+"            { PLUS }
 | "-"            { MINUS }
 | "*"            { TIMES }
+| "="            { BIND }
 | "=="           { EQ }
 | "<="			 { LEQ }
 | ">="           { GEQ }

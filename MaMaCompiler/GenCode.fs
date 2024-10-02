@@ -55,7 +55,10 @@ and codeC (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
             let! globalVars =
                 letAll <| List.mapi (fun i varName -> getVar ctxt varName noRange (stackLevel + i)) freeVarList
             let pushGlobals = List.map snd globalVars
-            let! tyExpr, codeExpr = codeV ctxt expr 0
+            let foldFreeVar (ctxt : Context) ((v, (ty, _)) : string * (Ty * Instruction)) (i : int) : Context =
+                { ctxt with varCtxt = ctxt.varCtxt.Add(v, { ty = ty ; address = Global(i) }) }
+            let ctxt' = List.fold2 foldFreeVar ctxt (List.zip freeVarList globalVars) [0 .. freeVarList.Length-1]
+            let! tyExpr, codeExpr = codeV ctxt' expr 0
             let! executeClosureAddr = getFreshSymbolicAddr
             let! afterAddr = getFreshSymbolicAddr
             return (
@@ -240,7 +243,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
     | Application(fnExpr, args, _) ->
         gen {
             let! tyFun, codeFun = codeV ctxt fnExpr (stackLevel + args.Length + 3)
-            let! tyCodeArgs = letAll <| List.mapi (fun i e -> codeC ctxt e (stackLevel + 3 + i)) args
+            let! tyCodeArgs = letAll <| List.mapi (fun i e -> codeC ctxt e (stackLevel + (args.Length - 1 - i) + 3)) args
             let formalTys = tyFun.DomTyList
             do!
                 if formalTys.Length < tyCodeArgs.Length then
