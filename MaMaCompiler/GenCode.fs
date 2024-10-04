@@ -248,8 +248,19 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                     ty = f.ty
                 }
                 { ctxt with varCtxt = ctxt.varCtxt.Add(f.name, entry) }
-            let ctxt' = List.fold2 addFormalToContext ctxt [0..formals.Length-1] formals
-            let! bodyTy, bodyCode = codeV ctxt' body 0
+            let addGlobalToContext (ctxt : Context)
+                                   (i : int)
+                                   ((name, (ty,instr)) : string * (Ty * Instruction)) : Context =
+                let entry = {
+                    address = Global(i)
+                    ty = ty
+                }
+                { ctxt with varCtxt = ctxt.varCtxt.Add(name, entry) }
+            let ctxt' =
+                List.fold2 addFormalToContext ctxt [0..formals.Length-1] formals
+            let ctxt'' =
+                List.fold2 addGlobalToContext ctxt' [0..freeVarList.Length-1] (List.zip freeVarList globalVars)
+            let! bodyTy, bodyCode = codeV ctxt'' body 0
             let funTy = List.fold (fun (ty : Ty) (f : Formal) -> FunTy(f.ty, ty, noRange)) bodyTy formals
             return (
                 funTy,

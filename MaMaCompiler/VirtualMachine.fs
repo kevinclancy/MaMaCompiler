@@ -72,7 +72,7 @@ let execute (code : Instruction []) : HeapObject =
         let n = SP - FP
         let array = Array.create n 0
         SP <- FP + 1
-        for i in 0 .. n do
+        for i in 0 .. (n-1) do
             array[i] <- S[SP + i]
         H.Add(Vector(n, array))
         S[SP] <- H.Count - 1
