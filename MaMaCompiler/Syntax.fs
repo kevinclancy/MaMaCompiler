@@ -49,6 +49,7 @@ type Expr =
     | FunAbstraction of formals:List<Formal> * body:Expr * Range
     | Var of string * Range
     | Let of bound_var:string * bind_to:Expr * body:Expr * Range
+    | LetRec of bindings:List<string * Ty * Expr> * body:Expr * Range
     | Application of fnExpr:Expr * args:List<Expr> * Range
     | IfThenElse of cond:Expr * thenExpr:Expr * elseExpr:Expr * Range
     | Int of int * Range
@@ -72,6 +73,11 @@ type Expr =
                 Set.singleton name
             | Let(varName, boundExpr, bodyExpr, _) ->
                 Set.union boundExpr.FreeVars (bodyExpr.FreeVars.Remove(varName))
+            | LetRec(bindings, body, _) ->
+                let boundVars = List.fold (fun vars (nm, _, _) -> Set.add nm vars) Set.empty bindings
+                let bindingFreeVars =
+                    Set.unionMany <| List.map (fun (_, _, expr : Expr) -> expr.FreeVars) bindings
+                Set.difference (Set.union bindingFreeVars body.FreeVars) boundVars
             | Application(fnExpr, argExprs, _) ->
                 let argFreeVars = Set.unionMany <| List.map (fun (x : Expr) -> x.FreeVars) argExprs
                 Set.union fnExpr.FreeVars argFreeVars
@@ -97,6 +103,7 @@ type Expr =
             | FunAbstraction(_,_,rng)
             | Var(_, rng)
             | Let(_,_,_,rng)
+            | LetRec(_,_,rng)
             | Application(_,_,rng)
             | IfThenElse(_,_,_,rng)
             | Int(_,rng) ->

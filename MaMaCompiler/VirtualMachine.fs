@@ -122,9 +122,11 @@ let execute (code : Instruction []) : HeapObject =
         S[SP + 1] <- S[SP - n]
         SP <- SP + 1
 
+    let mutable history = []
     // executes the next instruction
     // return - false if the instruction was HALT, and true otherwise
     let step () : bool =
+        history <- PC :: history;
         match code[PC] with
         | Update ->
             popenv ()
@@ -220,6 +222,8 @@ let execute (code : Instruction []) : HeapObject =
             true
         | Eq ->
             S[SP - 1] <- if S[SP - 1] = S[SP] then 1 else 0
+            let a = S[SP-1]
+            printf "%d" a;
             SP <- SP - 1
             PC <- PC + 1
             true
@@ -286,8 +290,8 @@ let execute (code : Instruction []) : HeapObject =
             PC <- PC + 1
             true
         | Alloc(n) ->
-            for i in 0 .. (n - 1) do
-                S[SP] <- (new_closure (- 1) (- 1))
+            for i in 1 .. n do
+                S[SP + i] <- (new_closure (- 1) (- 1))
             SP <- SP + n
             PC <- PC + 1
             true

@@ -208,6 +208,32 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
             let! tyBody, codeBody = codeV ctxt' bodyExpr (stackLevel + 1)
             return (tyBody, List.concat [codeBound ; codeBody ; [Slide 1]])
         }
+    | LetRec(bindings, body , rng) ->
+        gen {
+            let n = bindings.Length
+            let addVarToContext (ctxt : Context) ((name, ty, _) : string * Ty * Expr) (i : int) : Context =
+                { ctxt with varCtxt = ctxt.varCtxt.Add(name, { ty = ty ; address = Local(stackLevel + i)})}
+            let ctxt' = List.fold2 addVarToContext ctxt bindings [1 .. n]
+            let! bindingClosures =
+                letAll <| List.map (fun (_,_,e) -> codeC ctxt' e (stackLevel + n)) bindings
+            let boundExprTys,pushClosureBlocks = List.unzip bindingClosures
+            let rewriteClosureBlocks =
+                List.map2
+                    (fun block i -> List.concat [block ; [Rewrite i]])
+                    pushClosureBlocks
+                    [n .. -1 .. 1]
+            /// TODO: check that boundExprTys match the types of bindings
+            let! bodyTy, bodyCode = codeV ctxt' body (stackLevel + n)
+            return (
+                bodyTy,
+                List.concat [
+                    [Alloc n]
+                    List.concat rewriteClosureBlocks
+                    bodyCode
+                    [Slide n]
+                ]
+            )
+        }
     | FunAbstraction(formals, body, rng) ->
         gen {
             let freeVarList = Set.toList expr.FreeVars

@@ -57,6 +57,7 @@ rule token = parse
 | "with"         { WITH }
 | "and"          { AND }
 | "if"           { IF }
+| "then"         { THEN }
 | "else"         { ELSE }
 | "while"        { WHILE }
 | "for"          { FOR }
