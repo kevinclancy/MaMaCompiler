@@ -5,6 +5,20 @@ open GenComputation
 open TargetCode
 open Environment
 
+/// Generates code to push the value corresponding to a variable onto the stack,
+/// evaluating a closure if necessary
+///
+/// ## Parameters
+///
+/// * ctxt - The context the variable occurrence appears under
+/// * varName - The name of the variable
+/// * varRng - The source-code range the variable appears in
+/// * stackLevel - SP-SP0, where SP0 is the SP value at the time the current function was initially entered
+///
+/// ## Returns
+///
+/// * The type of the variable
+/// * Code to push the variable and possibly evaluate a closure if it's bound to one
 let getVar (ctxt : Context) (varName : string) (varRng : Range) (stackLevel : int) : Gen<Ty * Instruction> =
     match ctxt.varCtxt.TryFind(varName) with
     | Some { ty = ty ; address = Local(offset) } ->
@@ -18,6 +32,23 @@ let getVar (ctxt : Context) (varName : string) (varRng : Range) (stackLevel : in
     | None ->
         error $"identifier '{varName}' unknown" varRng
 
+/// For a binary operation `e1 binOp e2`, generate code to push the result's raw basic value
+/// (not heap reference) onto the stack
+///
+/// ## Parameters
+///
+/// * ctxt - The context the binary operation occurs under
+/// * e1 - The left operand
+/// * e2 - The right operand
+/// * instr - The instruction that pops the top two stack elements `v1` and `v2` and
+///           pushes the result of `v1 binOp v2` onto the stack
+/// * stackLevel - SP1-SP0, where SP0 is the SP value at the time the current function was initially
+///                entered and SP1 is the SP value at the time the returned code begins executing
+///
+/// ## Returns
+///
+/// * The type of the result of the binary operation
+/// * Code that pushes the value of `e1 binOp e2`
 let rec binOpB (ctxt : Context) (e1 : Expr) (e2 : Expr) (instr : Instruction) (stackLevel : int) : Gen<Ty * List<Instruction>> =
     gen {
         let! ty1, code1 = codeB ctxt e1 stackLevel
@@ -40,6 +71,23 @@ let rec binOpB (ctxt : Context) (e1 : Expr) (e2 : Expr) (instr : Instruction) (s
         )
     }
 
+/// For a binary operation `e1 binOp e2`, generate code to push the result's B-object
+/// onto the stack
+///
+/// ## Parameters
+///
+/// * ctxt - The context the binary operation occurs under
+/// * e1 - The left operand
+/// * e2 - The right operand
+/// * instr - The instruction that pops the top two stack elements `v1` and `v2` and
+///           pushes the result of `v1 binOp v2` onto the stack
+/// * stackLevel - SP1-SP0, where SP0 is the SP value at the time the current function was initially
+///                entered and SP1 is the SP value at the time the returned code begins executing
+///
+/// ## Returns
+///
+/// * The type of the result of the binary operation
+/// * Code that pushes the value of `e1 binOp e2`
 and binOpV (ctxt : Context) (e1 : Expr) (e2 : Expr) (instr : Instruction) (stackLevel : int) : Gen<Ty * List<Instruction>> =
     gen {
         let! ty, code = binOpB ctxt e1 e2 instr stackLevel
@@ -49,6 +97,18 @@ and binOpV (ctxt : Context) (e1 : Expr) (e2 : Expr) (instr : Instruction) (stack
         )
     }
 
+/// Generates code that pushes a closure of an expression onto the stack
+///
+/// ## Parameters
+/// * ctxt - The context that `expr` occurs under
+/// * expr - The expression whose closure our code pushes onto the stack
+/// * stackLevel - SP1-SP0, where SP0 is the SP value at the time the current function was initially
+///                entered and SP1 is the SP value at the time the returned code begins executing
+///
+/// ## Returns
+///
+/// * The type of the expression
+/// * Code that pushes the closure of `expr` onto the stack
 and codeC (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Instruction>> =
     gen {
             let freeVarList = Set.toList expr.FreeVars
@@ -76,6 +136,20 @@ and codeC (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
             )
     }
 
+/// Generates code that evaluates the expression `expr` and pushes its result's raw basic value
+/// (not heap reference) onto the stack
+///
+/// ## Parameters
+///
+/// * ctxt - The context that expr occurs under
+/// * expr - The expression to generate code for
+/// * stackLevel - SP1-SP0, where SP0 is the SP value at the time the current function was initially
+///                entered and SP1 is the SP value at the time the returned code begins executing
+///
+/// ## Returns
+///
+/// * The type of the expression, which should be a basic type like `IntTy`
+/// * Code to evaluate `expr` and push its result onto the stack
 and codeB (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Instruction>> =
     match expr with
     | Expr.Int(n, _) ->
@@ -141,6 +215,20 @@ and codeB (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
             )
         }
 
+/// Generates code that evaluates the expression `expr` and pushes a reference to its result's heap object
+/// onto the stack.
+///
+/// ## Parameters
+///
+/// * ctxt - The context `expr` occurs under
+/// * expr - The expression to generate code for
+/// * stackLevel - SP1-SP0, where SP0 is the SP value at the time the current function was initially
+///                entered and SP1 is the SP value at the time the returned code begins executing
+///
+/// ## Return
+///
+/// * The type of `expr`
+/// * Code to evaluate `expr` and push its result onto the stack
 and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Instruction>> =
     match expr with
     | Expr.Int(n, _) ->
@@ -208,6 +296,31 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
             let! tyBody, codeBody = codeV ctxt' bodyExpr (stackLevel + 1)
             return (tyBody, List.concat [codeBound ; codeBody ; [Slide 1]])
         }
+    | LetTuple(varNames, boundExpr, body, rng) ->
+        gen {
+            let! tyBound, codeBound = codeV ctxt boundExpr stackLevel
+            let! componentNameTys, n =
+                match tyBound with
+                | ProdTy(components, _) when components.Length = varNames.Length ->
+                    gen {
+                        return (List.zip varNames components), varNames.Length
+                    }
+                | _ ->
+                    error $"expected bound expression to have a tuple type of length {varNames.Length}" rng
+            let foldComponent (ctxt : Context) (i : int) ((name, ty) : string * Ty) : Context =
+                { ctxt with varCtxt = ctxt.varCtxt.Add(name, { address = Local(stackLevel + i); ty = ty }) }
+            let ctxt' = List.fold2 foldComponent ctxt [1 .. n] componentNameTys
+            let! tyBody, codeBody = codeV ctxt' body (stackLevel + n)
+            return (
+                tyBody,
+                List.concat [
+                    codeBound
+                    [GetVec]
+                    codeBody
+                    [Slide n]
+                ]
+            )
+        }
     | LetRec(bindings, body , rng) ->
         gen {
             let n = bindings.Length
@@ -222,7 +335,15 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                     (fun block i -> List.concat [block ; [Rewrite i]])
                     pushClosureBlocks
                     [n .. -1 .. 1]
-            /// TODO: check that boundExprTys match the types of bindings
+            let checkBindingTy (synthesizedTy : Ty) ((_, ascribedTy, _) : string * Ty * Expr) : Gen<Unit> =
+                if Ty.IsEqual synthesizedTy ascribedTy then
+                    gen {
+                        return ()
+                    }
+                else
+                    error $"ascribed type {ascribedTy} does not match synthesized type {synthesizedTy}" ascribedTy.Range
+            do!
+                doAll <| List.map2 checkBindingTy boundExprTys bindings
             let! bodyTy, bodyCode = codeV ctxt' body (stackLevel + n)
             return (
                 bodyTy,
@@ -309,6 +430,18 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                     codeFun
                     [Apply]
                     [SymbolicAddress afterAddr]
+                ]
+            )
+        }
+    | Tuple(elems, rng) ->
+        gen {
+            let! elemTyCodes = letAll <| List.mapi (fun i e -> codeC ctxt e (stackLevel + i)) elems
+            let elemTys, elemCodes = List.unzip elemTyCodes
+            return (
+                ProdTy(elemTys, noRange),
+                List.concat [
+                    List.concat elemCodes
+                    [MkVec elemCodes.Length]
                 ]
             )
         }

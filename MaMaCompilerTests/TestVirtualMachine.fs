@@ -287,3 +287,72 @@ type Fixture () =
         let result = execute code'
 
         Assert.That( (result = Basic(24)) )
+
+    [<Test>]
+    member this.testTuple () =
+        let e = parseExpr """
+        let (x,y,z) = (1,2,3) in
+        x + y + z
+        """
+        let ty, code =
+            match run (codeV Context.Empty e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith $"code generation failed: {msg}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'Int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(6)) )
+
+    [<Test>]
+    member this.testEmptyTuple () =
+        let e = parseExpr """
+        let () = () in
+        42
+        """
+        let ty, code =
+            match run (codeV Context.Empty e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith $"code generation failed: {msg}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'Int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(42)) )
+
+    [<Test>]
+    member this.testFactTuple () =
+        let e = parseExpr """
+        let rec fact : (int -> int) =
+            (fun (x : int) -> if x == 0 then 1 else (x * (fact (x - 1))))
+        in
+        let (x,y) = ((fact 3), (fact 4)) in
+        x + y
+        """
+        let ty, code =
+            match run (codeV Context.Empty e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, _) ->
+                failwith $"code generation failed: {msg}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'Int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(30)) )

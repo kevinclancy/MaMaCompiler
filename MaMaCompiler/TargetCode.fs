@@ -31,6 +31,9 @@ type Instruction =
     /// Remove the n values below the top element of the stack,
     /// but leave the top element on the stack
     | Slide of n:int
+    /// Assuming a V-object on top of the stack, pop the V-object and then
+    /// push its elements from left-to-right.
+    | GetVec
     /// Pop the n top elements from the stack, where v_{n-1} is the top element, v_{n-2} is
     /// the second-to-top element, etc. Push a reference to a length-n vector
     /// whose first element is v_0, second element is v_1, etc.

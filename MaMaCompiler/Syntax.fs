@@ -5,8 +5,16 @@ open Utils
 type Ty =
     | IntTy of Range
     | FunTy of dom:Ty * cod:Ty * Range
+    | ProdTy of components:List<Ty> * Range
 
     with
+        member this.Range : Range =
+            match this with
+            | IntTy(rng)
+            | FunTy(_,_,rng)
+            | ProdTy(_,rng) ->
+                rng
+
         member this.Apply (n : int) : Ty =
             match (n, this) with
             | (0, _) ->
@@ -29,6 +37,11 @@ type Ty =
                 true
             | FunTy(domA, codA, _), FunTy(domB, codB, _) ->
                 (Ty.IsEqual domA domB) && (Ty.IsEqual codA codB)
+            | ProdTy(componentsL, _), ProdTy(componentsR, _) ->
+                if componentsL.Length <> componentsR.Length then
+                    false
+                else
+                    List.forall (fun (l,r) -> Ty.IsEqual l r) (List.zip componentsL componentsR)
             | _ ->
                 false
 
@@ -48,11 +61,13 @@ type Expr =
     | Gt of Expr * Expr * Range
     | FunAbstraction of formals:List<Formal> * body:Expr * Range
     | Var of string * Range
-    | Let of bound_var:string * bind_to:Expr * body:Expr * Range
+    | Let of bound_var:string * bindTo:Expr * body:Expr * Range
     | LetRec of bindings:List<string * Ty * Expr> * body:Expr * Range
     | Application of fnExpr:Expr * args:List<Expr> * Range
     | IfThenElse of cond:Expr * thenExpr:Expr * elseExpr:Expr * Range
     | Int of int * Range
+    | Tuple of List<Expr> * Range
+    | LetTuple of componentVars:List<string> * bindTo:Expr * body:Expr * Range
 
     with
         member this.FreeVars : Set<string> =
@@ -89,6 +104,12 @@ type Expr =
                 ]
             | Int(_, _) ->
                 Set.empty
+            | Tuple(elems, _) ->
+                Set.unionMany (List.map (fun (e : Expr) -> e.FreeVars) elems)
+            | LetTuple(componentVars, bindTo, body, _) ->
+                Set.union
+                    bindTo.FreeVars
+                    (Set.difference body.FreeVars (Set.ofList componentVars))
 
         member this.Range : Range =
             match this with
@@ -106,5 +127,7 @@ type Expr =
             | LetRec(_,_,rng)
             | Application(_,_,rng)
             | IfThenElse(_,_,_,rng)
-            | Int(_,rng) ->
+            | Int(_,rng)
+            | Tuple(_, rng)
+            | LetTuple(_,_,_,rng) ->
                 rng

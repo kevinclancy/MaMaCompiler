@@ -11,8 +11,6 @@ type HeapObject =
     | Function of code_addr:int * argument_vec:int * global_vec:int
     | Vector of length:int * elems:int array
 
-
-
 let execute (code : Instruction []) : HeapObject =
     let mutable PC = 0
     let mutable SP = 0
@@ -158,6 +156,13 @@ let execute (code : Instruction []) : HeapObject =
                 true
             else
                 failwith $"fewer than {n} globals"
+        | GetVec ->
+            let (ExpectVector(n, elems)) = H[S[SP]]
+            for i in 0 .. n-1 do
+                S[SP + i] <- elems[i]
+            SP <- SP + n - 1
+            PC <- PC + 1
+            true
         | MkVec(n) ->
             let array = Array.create n 0
             let vec_addr = new_vector n array
