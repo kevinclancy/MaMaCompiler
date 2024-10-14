@@ -10,6 +10,7 @@ type HeapObject =
     | Closure of code_addr:int * global_vec:int
     | Function of code_addr:int * argument_vec:int * global_vec:int
     | Vector of length:int * elems:int array
+    | Ref of referTo:int
 
 let execute (code : Instruction []) : HeapObject =
     let mutable PC = 0
@@ -37,6 +38,17 @@ let execute (code : Instruction []) : HeapObject =
     let new_basic (n : int) : int =
         H.Add(Basic(n))
         H.Count - 1
+
+    let new_ref (contentsAddr : int) : int =
+        H.Add(Ref(contentsAddr))
+        H.Count - 1
+
+    let (|ExpectRef|) (r : HeapObject) : int =
+        match r with
+        | Ref(n) ->
+            n
+        | _ ->
+            failwith "expected reference"
 
     let (|ExpectFunction|) (fn : HeapObject) : int * int * int =
         match fn with
@@ -181,6 +193,22 @@ let execute (code : Instruction []) : HeapObject =
             S[SP] <- new_closure code_addr S[SP]
             PC <- PC + 1
             true
+        | MkRef ->
+            S[SP] <- new_ref S[SP]
+            PC <- PC + 1
+            true
+        | GetRef ->
+            let (ExpectRef n) = H[S[SP]]
+            S[SP] <- n
+            PC <- PC + 1
+            true
+        | RefAssign ->
+            let (ExpectRef _) = H[S[SP]]
+            H[S[SP]] <- Ref(S[SP - 1])
+            SP <- SP - 1
+            S[SP] <- new_vector 0 (Array.create 0 0)
+            PC <- PC + 1
+            true
         | MkBasic ->
             S[SP] <- new_basic S[SP]
             PC <- PC + 1
@@ -288,6 +316,10 @@ let execute (code : Instruction []) : HeapObject =
             true
         | Mark(return_addr) ->
             mark return_addr
+            PC <- PC + 1
+            true
+        | Pop ->
+            SP <- SP - 1
             PC <- PC + 1
             true
         | Slide(n) ->

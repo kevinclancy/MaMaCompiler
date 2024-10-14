@@ -40,6 +40,8 @@ rule token = parse
 | "-"            { MINUS }
 | "*"            { TIMES }
 | "="            { BIND }
+| ":="           { ASSIGN }
+| "!"            { BANG }
 | "=="           { EQ }
 | "<="			 { LEQ }
 | ">="           { GEQ }
@@ -50,6 +52,7 @@ rule token = parse
 | ";"            { SEMICOLON }
 | ","            { COMMA }
 | "."            { PERIOD }
+| "ref"          { REF }
 | "let"          { LET }
 | "in"           { IN }
 | "rec"          { REC }

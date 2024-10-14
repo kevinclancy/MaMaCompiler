@@ -356,3 +356,71 @@ type Fixture () =
         let result = execute code'
 
         Assert.That( (result = Basic(30)) )
+
+    [<Test>]
+    member this.testRef () =
+        let e = parseExpr """
+        let a = ref 0 in
+        !a
+        """
+        let ty, code =
+            match run (codeV Context.Empty e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'Int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(0)) )
+
+    [<Test>]
+    member this.testAssign () =
+        let e = parseExpr """
+        let a = ref 0 in
+        a := 2;
+        !a
+        """
+        let ty, code =
+            match run (codeV Context.Empty e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'Int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(2)) )
+
+    [<Test>]
+    member this.testAssignAdd () =
+        let e = parseExpr """
+        let a = ref 0 in
+        a := !a + 2;
+        !a
+        """
+        let ty, code =
+            match run (codeV Context.Empty e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'Int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(2)) )

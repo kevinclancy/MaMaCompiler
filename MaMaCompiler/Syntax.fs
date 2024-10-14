@@ -6,13 +6,15 @@ type Ty =
     | IntTy of Range
     | FunTy of dom:Ty * cod:Ty * Range
     | ProdTy of components:List<Ty> * Range
+    | RefTy of containedTy:Ty * Range
 
     with
         member this.Range : Range =
             match this with
             | IntTy(rng)
             | FunTy(_,_,rng)
-            | ProdTy(_,rng) ->
+            | ProdTy(_,rng)
+            | RefTy(_,rng) ->
                 rng
 
         member this.Apply (n : int) : Ty =
@@ -42,6 +44,8 @@ type Ty =
                     false
                 else
                     List.forall (fun (l,r) -> Ty.IsEqual l r) (List.zip componentsL componentsR)
+            | RefTy(containedTyA, _), RefTy(containedTyB, _) ->
+                Ty.IsEqual containedTyA containedTyB
             | _ ->
                 false
 
@@ -68,6 +72,10 @@ type Expr =
     | Int of int * Range
     | Tuple of List<Expr> * Range
     | LetTuple of componentVars:List<string> * bindTo:Expr * body:Expr * Range
+    | RefConstructor of init:Expr * Range
+    | Deref of ref:Expr * Range
+    | Assign of ref:Expr * newVal:Expr * Range
+    | Sequence of first:Expr * second:Expr * Range
 
     with
         member this.FreeVars : Set<string> =
@@ -110,6 +118,14 @@ type Expr =
                 Set.union
                     bindTo.FreeVars
                     (Set.difference body.FreeVars (Set.ofList componentVars))
+            | RefConstructor(initExpr, _) ->
+                initExpr.FreeVars
+            | Deref(refExpr, _) ->
+                refExpr.FreeVars
+            | Assign(refExpr, newValExpr, _) ->
+                Set.union refExpr.FreeVars newValExpr.FreeVars
+            | Sequence(firstExpr, secondExpr, _) ->
+                Set.union firstExpr.FreeVars secondExpr.FreeVars
 
         member this.Range : Range =
             match this with
@@ -129,5 +145,9 @@ type Expr =
             | IfThenElse(_,_,_,rng)
             | Int(_,rng)
             | Tuple(_, rng)
-            | LetTuple(_,_,_,rng) ->
+            | LetTuple(_,_,_,rng)
+            | RefConstructor(_, rng)
+            | Deref(_, rng)
+            | Assign(_, _, rng)
+            | Sequence(_, _, rng) ->
                 rng

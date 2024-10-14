@@ -19,8 +19,9 @@ type token =
   | WITH
   | MATCH
   | BIND
-  | NEW
-  | AMPERSAND
+  | REF
+  | BANG
+  | ASSIGN
   | RIGHTARROW
   | DELETE
   | RETURN
@@ -72,8 +73,9 @@ type tokenId =
     | TOKEN_WITH
     | TOKEN_MATCH
     | TOKEN_BIND
-    | TOKEN_NEW
-    | TOKEN_AMPERSAND
+    | TOKEN_REF
+    | TOKEN_BANG
+    | TOKEN_ASSIGN
     | TOKEN_RIGHTARROW
     | TOKEN_DELETE
     | TOKEN_RETURN
@@ -144,50 +146,51 @@ let tagOfToken (t:token) =
   | WITH  -> 4 
   | MATCH  -> 5 
   | BIND  -> 6 
-  | NEW  -> 7 
-  | AMPERSAND  -> 8 
-  | RIGHTARROW  -> 9 
-  | DELETE  -> 10 
-  | RETURN  -> 11 
-  | VOID  -> 12 
-  | EOF  -> 13 
-  | FUN  -> 14 
-  | TYPEDEF  -> 15 
-  | TO  -> 16 
-  | WHILE  -> 17 
-  | FOR  -> 18 
-  | SWITCH  -> 19 
-  | CASE  -> 20 
-  | DEFAULT  -> 21 
-  | COLON  -> 22 
-  | STRUCT  -> 23 
-  | BREAK  -> 24 
-  | COMMA  -> 25 
-  | PERIOD  -> 26 
-  | PLUS  -> 27 
-  | MINUS  -> 28 
-  | TIMES  -> 29 
-  | LEQ  -> 30 
-  | GEQ  -> 31 
-  | LT  -> 32 
-  | GT  -> 33 
-  | GETS  -> 34 
-  | SEMICOLON  -> 35 
-  | IF  -> 36 
-  | ELSE  -> 37 
-  | THEN  -> 38 
-  | EQ  -> 39 
-  | IN  -> 40 
-  | LET  -> 41 
-  | LPAREN  -> 42 
-  | RPAREN  -> 43 
-  | LBRACK  -> 44 
-  | RBRACK  -> 45 
-  | LSQUAREBRACK  -> 46 
-  | RSQUAREBRACK  -> 47 
-  | TYPEINT  -> 48 
-  | INT _ -> 49 
-  | ID _ -> 50 
+  | REF  -> 7 
+  | BANG  -> 8 
+  | ASSIGN  -> 9 
+  | RIGHTARROW  -> 10 
+  | DELETE  -> 11 
+  | RETURN  -> 12 
+  | VOID  -> 13 
+  | EOF  -> 14 
+  | FUN  -> 15 
+  | TYPEDEF  -> 16 
+  | TO  -> 17 
+  | WHILE  -> 18 
+  | FOR  -> 19 
+  | SWITCH  -> 20 
+  | CASE  -> 21 
+  | DEFAULT  -> 22 
+  | COLON  -> 23 
+  | STRUCT  -> 24 
+  | BREAK  -> 25 
+  | COMMA  -> 26 
+  | PERIOD  -> 27 
+  | PLUS  -> 28 
+  | MINUS  -> 29 
+  | TIMES  -> 30 
+  | LEQ  -> 31 
+  | GEQ  -> 32 
+  | LT  -> 33 
+  | GT  -> 34 
+  | GETS  -> 35 
+  | SEMICOLON  -> 36 
+  | IF  -> 37 
+  | ELSE  -> 38 
+  | THEN  -> 39 
+  | EQ  -> 40 
+  | IN  -> 41 
+  | LET  -> 42 
+  | LPAREN  -> 43 
+  | RPAREN  -> 44 
+  | LBRACK  -> 45 
+  | RBRACK  -> 46 
+  | LSQUAREBRACK  -> 47 
+  | RSQUAREBRACK  -> 48 
+  | TYPEINT  -> 49 
+  | INT _ -> 50 
+  | ID _ -> 51 
 
 // This function maps integer indexes to symbolic token ids
 let tokenTagToTokenId (tokenIdx:int) = 
@@ -199,52 +202,53 @@ let tokenTagToTokenId (tokenIdx:int) =
   | 4 -> TOKEN_WITH 
   | 5 -> TOKEN_MATCH 
   | 6 -> TOKEN_BIND 
-  | 7 -> TOKEN_NEW 
-  | 8 -> TOKEN_AMPERSAND 
-  | 9 -> TOKEN_RIGHTARROW 
-  | 10 -> TOKEN_DELETE 
-  | 11 -> TOKEN_RETURN 
-  | 12 -> TOKEN_VOID 
-  | 13 -> TOKEN_EOF 
-  | 14 -> TOKEN_FUN 
-  | 15 -> TOKEN_TYPEDEF 
-  | 16 -> TOKEN_TO 
-  | 17 -> TOKEN_WHILE 
-  | 18 -> TOKEN_FOR 
-  | 19 -> TOKEN_SWITCH 
-  | 20 -> TOKEN_CASE 
-  | 21 -> TOKEN_DEFAULT 
-  | 22 -> TOKEN_COLON 
-  | 23 -> TOKEN_STRUCT 
-  | 24 -> TOKEN_BREAK 
-  | 25 -> TOKEN_COMMA 
-  | 26 -> TOKEN_PERIOD 
-  | 27 -> TOKEN_PLUS 
-  | 28 -> TOKEN_MINUS 
-  | 29 -> TOKEN_TIMES 
-  | 30 -> TOKEN_LEQ 
-  | 31 -> TOKEN_GEQ 
-  | 32 -> TOKEN_LT 
-  | 33 -> TOKEN_GT 
-  | 34 -> TOKEN_GETS 
-  | 35 -> TOKEN_SEMICOLON 
-  | 36 -> TOKEN_IF 
-  | 37 -> TOKEN_ELSE 
-  | 38 -> TOKEN_THEN 
-  | 39 -> TOKEN_EQ 
-  | 40 -> TOKEN_IN 
-  | 41 -> TOKEN_LET 
-  | 42 -> TOKEN_LPAREN 
-  | 43 -> TOKEN_RPAREN 
-  | 44 -> TOKEN_LBRACK 
-  | 45 -> TOKEN_RBRACK 
-  | 46 -> TOKEN_LSQUAREBRACK 
-  | 47 -> TOKEN_RSQUAREBRACK 
-  | 48 -> TOKEN_TYPEINT 
-  | 49 -> TOKEN_INT 
-  | 50 -> TOKEN_ID 
-  | 53 -> TOKEN_end_of_input
-  | 51 -> TOKEN_error
+  | 7 -> TOKEN_REF 
+  | 8 -> TOKEN_BANG 
+  | 9 -> TOKEN_ASSIGN 
+  | 10 -> TOKEN_RIGHTARROW 
+  | 11 -> TOKEN_DELETE 
+  | 12 -> TOKEN_RETURN 
+  | 13 -> TOKEN_VOID 
+  | 14 -> TOKEN_EOF 
+  | 15 -> TOKEN_FUN 
+  | 16 -> TOKEN_TYPEDEF 
+  | 17 -> TOKEN_TO 
+  | 18 -> TOKEN_WHILE 
+  | 19 -> TOKEN_FOR 
+  | 20 -> TOKEN_SWITCH 
+  | 21 -> TOKEN_CASE 
+  | 22 -> TOKEN_DEFAULT 
+  | 23 -> TOKEN_COLON 
+  | 24 -> TOKEN_STRUCT 
+  | 25 -> TOKEN_BREAK 
+  | 26 -> TOKEN_COMMA 
+  | 27 -> TOKEN_PERIOD 
+  | 28 -> TOKEN_PLUS 
+  | 29 -> TOKEN_MINUS 
+  | 30 -> TOKEN_TIMES 
+  | 31 -> TOKEN_LEQ 
+  | 32 -> TOKEN_GEQ 
+  | 33 -> TOKEN_LT 
+  | 34 -> TOKEN_GT 
+  | 35 -> TOKEN_GETS 
+  | 36 -> TOKEN_SEMICOLON 
+  | 37 -> TOKEN_IF 
+  | 38 -> TOKEN_ELSE 
+  | 39 -> TOKEN_THEN 
+  | 40 -> TOKEN_EQ 
+  | 41 -> TOKEN_IN 
+  | 42 -> TOKEN_LET 
+  | 43 -> TOKEN_LPAREN 
+  | 44 -> TOKEN_RPAREN 
+  | 45 -> TOKEN_LBRACK 
+  | 46 -> TOKEN_RBRACK 
+  | 47 -> TOKEN_LSQUAREBRACK 
+  | 48 -> TOKEN_RSQUAREBRACK 
+  | 49 -> TOKEN_TYPEINT 
+  | 50 -> TOKEN_INT 
+  | 51 -> TOKEN_ID 
+  | 54 -> TOKEN_end_of_input
+  | 52 -> TOKEN_error
   | _ -> failwith "tokenTagToTokenId: bad token"
 
 /// This function maps production indexes returned in syntax errors to strings representing the non terminal that would be produced by that production
@@ -272,28 +276,32 @@ let prodIdxToNonTerminal (prodIdx:int) =
     | 19 -> NONTERM_Expr 
     | 20 -> NONTERM_Expr 
     | 21 -> NONTERM_Expr 
-    | 22 -> NONTERM_BindClauses 
-    | 23 -> NONTERM_BindClauses 
-    | 24 -> NONTERM_BindClause 
-    | 25 -> NONTERM_Formal 
-    | 26 -> NONTERM_FormalList 
-    | 27 -> NONTERM_FormalList 
-    | 28 -> NONTERM_ExprList 
-    | 29 -> NONTERM_ExprList 
-    | 30 -> NONTERM_ExprListComma 
-    | 31 -> NONTERM_ExprListComma 
-    | 32 -> NONTERM_VarListComma 
-    | 33 -> NONTERM_VarListComma 
-    | 34 -> NONTERM_TypeList 
-    | 35 -> NONTERM_TypeList 
-    | 36 -> NONTERM_Type 
-    | 37 -> NONTERM_Type 
-    | 38 -> NONTERM_Type 
-    | 39 -> NONTERM_prog 
+    | 22 -> NONTERM_Expr 
+    | 23 -> NONTERM_Expr 
+    | 24 -> NONTERM_Expr 
+    | 25 -> NONTERM_Expr 
+    | 26 -> NONTERM_BindClauses 
+    | 27 -> NONTERM_BindClauses 
+    | 28 -> NONTERM_BindClause 
+    | 29 -> NONTERM_Formal 
+    | 30 -> NONTERM_FormalList 
+    | 31 -> NONTERM_FormalList 
+    | 32 -> NONTERM_ExprList 
+    | 33 -> NONTERM_ExprList 
+    | 34 -> NONTERM_ExprListComma 
+    | 35 -> NONTERM_ExprListComma 
+    | 36 -> NONTERM_VarListComma 
+    | 37 -> NONTERM_VarListComma 
+    | 38 -> NONTERM_TypeList 
+    | 39 -> NONTERM_TypeList 
+    | 40 -> NONTERM_Type 
+    | 41 -> NONTERM_Type 
+    | 42 -> NONTERM_Type 
+    | 43 -> NONTERM_prog 
     | _ -> failwith "prodIdxToNonTerminal: bad production index"
 
-let _fsyacc_endOfInputTag = 53 
-let _fsyacc_tagOfErrorTerminal = 51
+let _fsyacc_endOfInputTag = 54 
+let _fsyacc_tagOfErrorTerminal = 52
 
 // This function gets the name of a token as a string
 let token_to_string (t:token) = 
@@ -305,8 +313,9 @@ let token_to_string (t:token) =
   | WITH  -> "WITH" 
   | MATCH  -> "MATCH" 
   | BIND  -> "BIND" 
-  | NEW  -> "NEW" 
-  | AMPERSAND  -> "AMPERSAND" 
+  | REF  -> "REF" 
+  | BANG  -> "BANG" 
+  | ASSIGN  -> "ASSIGN" 
   | RIGHTARROW  -> "RIGHTARROW" 
   | DELETE  -> "DELETE" 
   | RETURN  -> "RETURN" 
@@ -360,8 +369,9 @@ let _fsyacc_dataOfToken (t:token) =
   | WITH  -> (null : System.Object) 
   | MATCH  -> (null : System.Object) 
   | BIND  -> (null : System.Object) 
-  | NEW  -> (null : System.Object) 
-  | AMPERSAND  -> (null : System.Object) 
+  | REF  -> (null : System.Object) 
+  | BANG  -> (null : System.Object) 
+  | ASSIGN  -> (null : System.Object) 
   | RIGHTARROW  -> (null : System.Object) 
   | DELETE  -> (null : System.Object) 
   | RETURN  -> (null : System.Object) 
@@ -404,18 +414,18 @@ let _fsyacc_dataOfToken (t:token) =
   | TYPEINT  -> (null : System.Object) 
   | INT _fsyacc_x -> Microsoft.FSharp.Core.Operators.box _fsyacc_x 
   | ID _fsyacc_x -> Microsoft.FSharp.Core.Operators.box _fsyacc_x 
-let _fsyacc_gotos = [| 0us;65535us;1us;65535us;0us;1us;27us;65535us;0us;2us;16us;25us;25us;25us;26us;25us;27us;4us;28us;5us;29us;6us;30us;7us;31us;8us;32us;9us;33us;10us;34us;11us;37us;16us;40us;12us;44us;13us;45us;14us;48us;15us;51us;26us;54us;17us;55us;18us;56us;19us;63us;20us;64us;21us;66us;22us;67us;23us;74us;24us;83us;25us;2us;65535us;46us;47us;69us;70us;2us;65535us;46us;68us;69us;68us;2us;65535us;38us;80us;80us;80us;2us;65535us;38us;39us;80us;81us;5us;65535us;16us;49us;25us;82us;26us;82us;51us;84us;83us;84us;2us;65535us;37us;57us;51us;52us;2us;65535us;60us;61us;86us;87us;2us;65535us;89us;90us;94us;95us;5us;65535us;72us;73us;77us;78us;89us;88us;93us;92us;94us;88us;0us;65535us;|]
-let _fsyacc_sparseGotoTableRowOffsets = [|0us;1us;3us;31us;34us;37us;40us;43us;49us;52us;55us;58us;64us;|]
-let _fsyacc_stateToProdIdxsTableElements = [| 1us;0us;1us;0us;9us;1us;2us;3us;4us;5us;6us;7us;8us;9us;1us;1us;9us;2us;2us;3us;4us;5us;6us;7us;8us;9us;9us;2us;3us;3us;4us;5us;6us;7us;8us;9us;9us;2us;3us;4us;4us;5us;6us;7us;8us;9us;9us;2us;3us;4us;5us;5us;6us;7us;8us;9us;9us;2us;3us;4us;5us;6us;6us;7us;8us;9us;9us;2us;3us;4us;5us;6us;7us;7us;8us;9us;9us;2us;3us;4us;5us;6us;7us;8us;8us;9us;9us;2us;3us;4us;5us;6us;7us;8us;9us;9us;9us;2us;3us;4us;5us;6us;7us;8us;9us;12us;9us;2us;3us;4us;5us;6us;7us;8us;9us;13us;9us;2us;3us;4us;5us;6us;7us;8us;9us;13us;9us;2us;3us;4us;5us;6us;7us;8us;9us;14us;12us;2us;3us;4us;5us;6us;7us;8us;9us;15us;16us;30us;31us;9us;2us;3us;4us;5us;6us;7us;8us;9us;17us;9us;2us;3us;4us;5us;6us;7us;8us;9us;17us;9us;2us;3us;4us;5us;6us;7us;8us;9us;17us;9us;2us;3us;4us;5us;6us;7us;8us;9us;20us;9us;2us;3us;4us;5us;6us;7us;8us;9us;20us;9us;2us;3us;4us;5us;6us;7us;8us;9us;21us;9us;2us;3us;4us;5us;6us;7us;8us;9us;21us;9us;2us;3us;4us;5us;6us;7us;8us;9us;24us;10us;2us;3us;4us;5us;6us;7us;8us;9us;28us;29us;12us;2us;3us;4us;5us;6us;7us;8us;9us;28us;29us;30us;31us;1us;2us;1us;3us;1us;4us;1us;5us;1us;6us;1us;7us;1us;8us;1us;9us;1us;10us;1us;11us;5us;12us;15us;16us;18us;19us;1us;12us;1us;12us;1us;12us;1us;12us;4us;13us;14us;20us;21us;1us;13us;1us;13us;1us;13us;1us;14us;1us;14us;1us;14us;1us;15us;1us;15us;2us;16us;31us;1us;16us;1us;16us;1us;17us;1us;17us;1us;17us;1us;18us;1us;18us;1us;19us;2us;20us;21us;1us;20us;1us;20us;1us;20us;1us;20us;1us;21us;1us;21us;1us;21us;2us;22us;23us;1us;22us;1us;22us;1us;24us;1us;24us;2us;24us;37us;1us;24us;1us;25us;1us;25us;1us;25us;2us;25us;37us;1us;25us;2us;26us;27us;1us;26us;1us;29us;1us;31us;1us;31us;2us;32us;33us;1us;33us;1us;33us;3us;34us;35us;37us;1us;35us;1us;35us;1us;36us;2us;37us;37us;1us;37us;1us;38us;1us;38us;1us;38us;|]
-let _fsyacc_stateToProdIdxsTableRowOffsets = [|0us;2us;4us;14us;16us;26us;36us;46us;56us;66us;76us;86us;96us;106us;116us;126us;136us;149us;159us;169us;179us;189us;199us;209us;219us;229us;240us;253us;255us;257us;259us;261us;263us;265us;267us;269us;271us;273us;279us;281us;283us;285us;287us;292us;294us;296us;298us;300us;302us;304us;306us;308us;311us;313us;315us;317us;319us;321us;323us;325us;327us;330us;332us;334us;336us;338us;340us;342us;344us;347us;349us;351us;353us;355us;358us;360us;362us;364us;366us;369us;371us;374us;376us;378us;380us;382us;385us;387us;389us;393us;395us;397us;399us;402us;404us;406us;408us;|]
-let _fsyacc_action_rows = 97
-let _fsyacc_actionTableElements = [|5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;0us;49152us;9us;32768us;13us;3us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;0us;16385us;5us;16386us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;5us;16387us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;7us;16388us;27us;27us;28us;28us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;0us;16389us;0us;16390us;0us;16391us;0us;16392us;0us;16393us;9us;32768us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;43us;41us;9us;32768us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;40us;45us;8us;16397us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;8us;16398us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;14us;16414us;25us;51us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;36us;54us;39us;30us;41us;42us;42us;37us;49us;35us;50us;36us;9us;32768us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;38us;55us;39us;30us;9us;32768us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;37us;56us;39us;30us;8us;16401us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;9us;32768us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;40us;64us;8us;16404us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;9us;32768us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;40us;67us;8us;16405us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;8us;16408us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;39us;30us;13us;16412us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;36us;54us;39us;30us;41us;42us;42us;37us;49us;35us;50us;36us;14us;16412us;25us;83us;27us;27us;28us;28us;29us;29us;30us;31us;31us;32us;32us;33us;33us;34us;36us;54us;39us;30us;41us;42us;42us;37us;49us;35us;50us;36us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;0us;16394us;0us;16395us;7us;32768us;14us;38us;36us;54us;41us;42us;42us;37us;43us;59us;49us;35us;50us;36us;1us;32768us;42us;75us;1us;32768us;16us;40us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;0us;16396us;3us;32768us;2us;46us;42us;60us;50us;43us;1us;32768us;6us;44us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;1us;32768us;50us;71us;1us;32768us;40us;48us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;1us;32768us;43us;50us;0us;16399us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;1us;32768us;43us;53us;0us;16400us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;1us;32768us;43us;58us;0us;16402us;0us;16403us;2us;32768us;43us;65us;50us;85us;1us;32768us;43us;62us;1us;32768us;6us;63us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;1us;32768us;6us;66us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;1us;16407us;3us;69us;1us;32768us;50us;71us;0us;16406us;1us;32768us;22us;72us;2us;32768us;42us;94us;48us;91us;2us;32768us;6us;74us;16us;93us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;1us;32768us;50us;76us;1us;32768us;22us;77us;2us;32768us;42us;94us;48us;91us;2us;32768us;16us;93us;43us;79us;0us;16409us;1us;16411us;42us;75us;0us;16410us;0us;16413us;5us;32768us;36us;54us;41us;42us;42us;37us;49us;35us;50us;36us;0us;16415us;1us;16416us;25us;86us;1us;32768us;50us;85us;0us;16417us;2us;16418us;16us;93us;25us;89us;2us;32768us;42us;94us;48us;91us;0us;16419us;0us;16420us;1us;16421us;16us;93us;2us;32768us;42us;94us;48us;91us;2us;32768us;42us;94us;48us;91us;1us;32768us;43us;96us;0us;16422us;|]
-let _fsyacc_actionTableRowOffsets = [|0us;6us;7us;17us;18us;24us;30us;38us;39us;40us;41us;42us;43us;53us;63us;72us;81us;96us;106us;116us;125us;135us;144us;154us;163us;172us;186us;201us;207us;213us;219us;225us;231us;237us;243us;249us;250us;251us;259us;261us;263us;269us;270us;274us;276us;282us;288us;290us;292us;298us;300us;301us;307us;309us;310us;316us;322us;328us;330us;331us;332us;335us;337us;339us;345us;351us;353us;359us;365us;367us;369us;370us;372us;375us;378us;384us;386us;388us;391us;394us;395us;397us;398us;399us;405us;406us;408us;410us;411us;414us;417us;418us;419us;421us;424us;427us;429us;|]
-let _fsyacc_reductionSymbolCounts = [|1us;2us;3us;3us;3us;3us;3us;3us;3us;3us;1us;1us;6us;6us;5us;4us;5us;6us;3us;2us;8us;7us;3us;1us;5us;5us;2us;1us;1us;2us;1us;3us;1us;3us;1us;3us;1us;3us;3us;2us;|]
-let _fsyacc_productionToNonTerminalTable = [|0us;1us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;3us;3us;4us;5us;6us;6us;7us;7us;8us;8us;9us;9us;10us;10us;11us;11us;11us;12us;|]
-let _fsyacc_immediateActions = [|65535us;49152us;65535us;16385us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;16394us;16395us;65535us;65535us;65535us;65535us;16396us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;16399us;65535us;65535us;16400us;65535us;65535us;65535us;65535us;16402us;16403us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;16406us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;16409us;65535us;16410us;16413us;65535us;16415us;65535us;65535us;16417us;65535us;65535us;16419us;16420us;65535us;65535us;65535us;65535us;16422us;|]
+let _fsyacc_gotos = [| 0us;65535us;1us;65535us;0us;1us;31us;65535us;0us;2us;16us;29us;29us;29us;30us;29us;31us;4us;32us;5us;33us;6us;34us;7us;35us;8us;36us;9us;37us;10us;38us;11us;41us;16us;44us;12us;48us;13us;49us;14us;52us;15us;55us;30us;58us;17us;59us;18us;60us;19us;67us;20us;68us;21us;70us;22us;71us;23us;72us;24us;73us;25us;74us;26us;75us;27us;82us;28us;91us;29us;2us;65535us;50us;51us;77us;78us;2us;65535us;50us;76us;77us;76us;2us;65535us;42us;88us;88us;88us;2us;65535us;42us;43us;88us;89us;5us;65535us;16us;53us;29us;90us;30us;90us;55us;92us;91us;92us;2us;65535us;41us;61us;55us;56us;2us;65535us;64us;65us;94us;95us;2us;65535us;97us;98us;102us;103us;5us;65535us;80us;81us;85us;86us;97us;96us;101us;100us;102us;96us;0us;65535us;|]
+let _fsyacc_sparseGotoTableRowOffsets = [|0us;1us;3us;35us;38us;41us;44us;47us;53us;56us;59us;62us;68us;|]
+let _fsyacc_stateToProdIdxsTableElements = [| 1us;0us;1us;0us;11us;1us;2us;3us;4us;5us;6us;7us;8us;9us;23us;24us;1us;1us;11us;2us;2us;3us;4us;5us;6us;7us;8us;9us;23us;24us;11us;2us;3us;3us;4us;5us;6us;7us;8us;9us;23us;24us;11us;2us;3us;4us;4us;5us;6us;7us;8us;9us;23us;24us;11us;2us;3us;4us;5us;5us;6us;7us;8us;9us;23us;24us;11us;2us;3us;4us;5us;6us;6us;7us;8us;9us;23us;24us;11us;2us;3us;4us;5us;6us;7us;7us;8us;9us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;8us;9us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;9us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;12us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;13us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;13us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;14us;23us;24us;14us;2us;3us;4us;5us;6us;7us;8us;9us;15us;16us;23us;24us;34us;35us;11us;2us;3us;4us;5us;6us;7us;8us;9us;17us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;17us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;17us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;20us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;20us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;21us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;21us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;22us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;23us;23us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;23us;24us;24us;11us;2us;3us;4us;5us;6us;7us;8us;9us;23us;24us;25us;11us;2us;3us;4us;5us;6us;7us;8us;9us;23us;24us;28us;12us;2us;3us;4us;5us;6us;7us;8us;9us;23us;24us;32us;33us;14us;2us;3us;4us;5us;6us;7us;8us;9us;23us;24us;32us;33us;34us;35us;1us;2us;1us;3us;1us;4us;1us;5us;1us;6us;1us;7us;1us;8us;1us;9us;1us;10us;1us;11us;5us;12us;15us;16us;18us;19us;1us;12us;1us;12us;1us;12us;1us;12us;4us;13us;14us;20us;21us;1us;13us;1us;13us;1us;13us;1us;14us;1us;14us;1us;14us;1us;15us;1us;15us;2us;16us;35us;1us;16us;1us;16us;1us;17us;1us;17us;1us;17us;1us;18us;1us;18us;1us;19us;2us;20us;21us;1us;20us;1us;20us;1us;20us;1us;20us;1us;21us;1us;21us;1us;21us;1us;22us;1us;23us;1us;24us;1us;25us;2us;26us;27us;1us;26us;1us;26us;1us;28us;1us;28us;2us;28us;41us;1us;28us;1us;29us;1us;29us;1us;29us;2us;29us;41us;1us;29us;2us;30us;31us;1us;30us;1us;33us;1us;35us;1us;35us;2us;36us;37us;1us;37us;1us;37us;3us;38us;39us;41us;1us;39us;1us;39us;1us;40us;2us;41us;41us;1us;41us;1us;42us;1us;42us;1us;42us;|]
+let _fsyacc_stateToProdIdxsTableRowOffsets = [|0us;2us;4us;16us;18us;30us;42us;54us;66us;78us;90us;102us;114us;126us;138us;150us;162us;177us;189us;201us;213us;225us;237us;249us;261us;273us;285us;297us;309us;321us;334us;349us;351us;353us;355us;357us;359us;361us;363us;365us;367us;369us;375us;377us;379us;381us;383us;388us;390us;392us;394us;396us;398us;400us;402us;404us;407us;409us;411us;413us;415us;417us;419us;421us;423us;426us;428us;430us;432us;434us;436us;438us;440us;442us;444us;446us;448us;451us;453us;455us;457us;459us;462us;464us;466us;468us;470us;473us;475us;478us;480us;482us;484us;486us;489us;491us;493us;497us;499us;501us;503us;506us;508us;510us;512us;|]
+let _fsyacc_action_rows = 105
+let _fsyacc_actionTableElements = [|7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;0us;49152us;11us;32768us;9us;74us;14us;3us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;40us;34us;0us;16385us;1us;16386us;30us;33us;1us;16387us;30us;33us;0us;16388us;3us;16389us;28us;31us;29us;32us;30us;33us;3us;16390us;28us;31us;29us;32us;30us;33us;3us;16391us;28us;31us;29us;32us;30us;33us;3us;16392us;28us;31us;29us;32us;30us;33us;3us;16393us;28us;31us;29us;32us;30us;33us;11us;32768us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;40us;34us;44us;45us;11us;32768us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;40us;34us;41us;49us;10us;16397us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;40us;34us;10us;16398us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;40us;34us;18us;16418us;7us;72us;8us;75us;9us;74us;26us;55us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;37us;58us;40us;34us;42us;46us;43us;41us;50us;39us;51us;40us;11us;32768us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;39us;59us;40us;34us;11us;32768us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;38us;60us;40us;34us;10us;16401us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;40us;34us;11us;32768us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;40us;34us;41us;68us;10us;16404us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;40us;34us;11us;32768us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;40us;34us;41us;71us;10us;16405us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;40us;34us;9us;16406us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;40us;34us;9us;16407us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;40us;34us;8us;16408us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;40us;34us;0us;16409us;10us;16412us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;40us;34us;17us;16416us;7us;72us;8us;75us;9us;74us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;37us;58us;40us;34us;42us;46us;43us;41us;50us;39us;51us;40us;18us;16416us;7us;72us;8us;75us;9us;74us;26us;91us;28us;31us;29us;32us;30us;33us;31us;35us;32us;36us;33us;37us;34us;38us;36us;73us;37us;58us;40us;34us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;0us;16394us;0us;16395us;9us;32768us;7us;72us;8us;75us;15us;42us;37us;58us;42us;46us;43us;41us;44us;63us;50us;39us;51us;40us;1us;32768us;43us;83us;1us;32768us;17us;44us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;0us;16396us;3us;32768us;2us;50us;43us;64us;51us;47us;1us;32768us;6us;48us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;1us;32768us;51us;79us;1us;32768us;41us;52us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;1us;32768us;44us;54us;0us;16399us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;1us;32768us;44us;57us;0us;16400us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;1us;32768us;44us;62us;0us;16402us;0us;16403us;2us;32768us;44us;69us;51us;93us;1us;32768us;44us;66us;1us;32768us;6us;67us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;1us;32768us;6us;70us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;1us;16411us;3us;77us;1us;32768us;51us;79us;0us;16410us;1us;32768us;23us;80us;2us;32768us;43us;102us;49us;99us;2us;32768us;6us;82us;17us;101us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;1us;32768us;51us;84us;1us;32768us;23us;85us;2us;32768us;43us;102us;49us;99us;2us;32768us;17us;101us;44us;87us;0us;16413us;1us;16415us;43us;83us;0us;16414us;0us;16417us;7us;32768us;7us;72us;8us;75us;37us;58us;42us;46us;43us;41us;50us;39us;51us;40us;0us;16419us;1us;16420us;26us;94us;1us;32768us;51us;93us;0us;16421us;2us;16422us;17us;101us;26us;97us;2us;32768us;43us;102us;49us;99us;0us;16423us;0us;16424us;1us;16425us;17us;101us;2us;32768us;43us;102us;49us;99us;2us;32768us;43us;102us;49us;99us;1us;32768us;44us;104us;0us;16426us;|]
+let _fsyacc_actionTableRowOffsets = [|0us;8us;9us;21us;22us;24us;26us;27us;31us;35us;39us;43us;47us;59us;71us;82us;93us;112us;124us;136us;147us;159us;170us;182us;193us;203us;213us;222us;223us;234us;252us;271us;279us;287us;295us;303us;311us;319us;327us;335us;336us;337us;347us;349us;351us;359us;360us;364us;366us;374us;382us;384us;386us;394us;396us;397us;405us;407us;408us;416us;424us;432us;434us;435us;436us;439us;441us;443us;451us;459us;461us;469us;477us;485us;493us;501us;509us;511us;513us;514us;516us;519us;522us;530us;532us;534us;537us;540us;541us;543us;544us;545us;553us;554us;556us;558us;559us;562us;565us;566us;567us;569us;572us;575us;577us;|]
+let _fsyacc_reductionSymbolCounts = [|1us;2us;3us;3us;3us;3us;3us;3us;3us;3us;1us;1us;6us;6us;5us;4us;5us;6us;3us;2us;8us;7us;2us;3us;3us;2us;3us;1us;5us;5us;2us;1us;1us;2us;1us;3us;1us;3us;1us;3us;1us;3us;3us;2us;|]
+let _fsyacc_productionToNonTerminalTable = [|0us;1us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;2us;3us;3us;4us;5us;6us;6us;7us;7us;8us;8us;9us;9us;10us;10us;11us;11us;11us;12us;|]
+let _fsyacc_immediateActions = [|65535us;49152us;65535us;16385us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;16394us;16395us;65535us;65535us;65535us;65535us;16396us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;16399us;65535us;65535us;16400us;65535us;65535us;65535us;65535us;16402us;16403us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;16410us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;65535us;16413us;65535us;16414us;16417us;65535us;16419us;65535us;65535us;16421us;65535us;65535us;16423us;16424us;65535us;65535us;65535us;65535us;16426us;|]
 let _fsyacc_reductions = lazy [|
-# 418 "Parser.fs"
+# 428 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> Expr in
             Microsoft.FSharp.Core.Operators.box
@@ -424,148 +434,148 @@ let _fsyacc_reductions = lazy [|
                       raise (FSharp.Text.Parsing.Accept(Microsoft.FSharp.Core.Operators.box _1))
                    )
                  : 'gentype__startexpr));
-# 427 "Parser.fs"
+# 437 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 38 "Parser.fsy"
+# 42 "Parser.fsy"
                                        _1 
                    )
-# 38 "Parser.fsy"
+# 42 "Parser.fsy"
                  : Expr));
-# 438 "Parser.fs"
+# 448 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             let _3 = parseState.GetInput(3) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 39 "Parser.fsy"
+# 43 "Parser.fsy"
                                                           Plus(_1, _3, parseState.ResultRange) 
                    )
-# 39 "Parser.fsy"
+# 43 "Parser.fsy"
                  : 'gentype_Expr));
-# 450 "Parser.fs"
+# 460 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             let _3 = parseState.GetInput(3) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 40 "Parser.fsy"
+# 44 "Parser.fsy"
                                                           Minus(_1, _3, parseState.ResultRange) 
                    )
-# 40 "Parser.fsy"
+# 44 "Parser.fsy"
                  : 'gentype_Expr));
-# 462 "Parser.fs"
+# 472 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             let _3 = parseState.GetInput(3) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 41 "Parser.fsy"
+# 45 "Parser.fsy"
                                                           Times(_1, _3, parseState.ResultRange) 
                    )
-# 41 "Parser.fsy"
+# 45 "Parser.fsy"
                  : 'gentype_Expr));
-# 474 "Parser.fs"
+# 484 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             let _3 = parseState.GetInput(3) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 42 "Parser.fsy"
+# 46 "Parser.fsy"
                                                           Eq(_1, _3, parseState.ResultRange) 
                    )
-# 42 "Parser.fsy"
+# 46 "Parser.fsy"
                  : 'gentype_Expr));
-# 486 "Parser.fs"
+# 496 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             let _3 = parseState.GetInput(3) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 43 "Parser.fsy"
+# 47 "Parser.fsy"
                                                           Leq(_1, _3, parseState.ResultRange) 
                    )
-# 43 "Parser.fsy"
+# 47 "Parser.fsy"
                  : 'gentype_Expr));
-# 498 "Parser.fs"
+# 508 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             let _3 = parseState.GetInput(3) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 44 "Parser.fsy"
+# 48 "Parser.fsy"
                                                           Geq(_1, _3, parseState.ResultRange) 
                    )
-# 44 "Parser.fsy"
+# 48 "Parser.fsy"
                  : 'gentype_Expr));
-# 510 "Parser.fs"
+# 520 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             let _3 = parseState.GetInput(3) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 45 "Parser.fsy"
+# 49 "Parser.fsy"
                                                           Lt(_1, _3, parseState.ResultRange) 
                    )
-# 45 "Parser.fsy"
+# 49 "Parser.fsy"
                  : 'gentype_Expr));
-# 522 "Parser.fs"
+# 532 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             let _3 = parseState.GetInput(3) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 46 "Parser.fsy"
+# 50 "Parser.fsy"
                                                           Gt(_1, _3, parseState.ResultRange) 
                    )
-# 46 "Parser.fsy"
+# 50 "Parser.fsy"
                  : 'gentype_Expr));
-# 534 "Parser.fs"
+# 544 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> int in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 47 "Parser.fsy"
+# 51 "Parser.fsy"
                                   Int(_1, parseState.ResultRange) 
                    )
-# 47 "Parser.fsy"
+# 51 "Parser.fsy"
                  : 'gentype_Expr));
-# 545 "Parser.fs"
+# 555 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> string in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 48 "Parser.fsy"
+# 52 "Parser.fsy"
                                  Var(_1, parseState.ResultRange) 
                    )
-# 48 "Parser.fsy"
+# 52 "Parser.fsy"
                  : 'gentype_Expr));
-# 556 "Parser.fs"
+# 566 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _3 = parseState.GetInput(3) :?> 'gentype_FormalList in
             let _5 = parseState.GetInput(5) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 49 "Parser.fsy"
+# 53 "Parser.fsy"
                                                                    FunAbstraction(_3, _5, parseState.ResultRange) 
                    )
-# 49 "Parser.fsy"
+# 53 "Parser.fsy"
                  : 'gentype_Expr));
-# 568 "Parser.fs"
+# 578 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _2 = parseState.GetInput(2) :?> string in
             let _4 = parseState.GetInput(4) :?> 'gentype_Expr in
@@ -573,48 +583,48 @@ let _fsyacc_reductions = lazy [|
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 50 "Parser.fsy"
+# 54 "Parser.fsy"
                                                                  Let(_2, _4, _6, parseState.ResultRange) 
                    )
-# 50 "Parser.fsy"
+# 54 "Parser.fsy"
                  : 'gentype_Expr));
-# 581 "Parser.fs"
+# 591 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _3 = parseState.GetInput(3) :?> 'gentype_BindClauses in
             let _5 = parseState.GetInput(5) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 51 "Parser.fsy"
+# 55 "Parser.fsy"
                                                                     LetRec(_3, _5, parseState.ResultRange) 
                    )
-# 51 "Parser.fsy"
+# 55 "Parser.fsy"
                  : 'gentype_Expr));
-# 593 "Parser.fs"
+# 603 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _2 = parseState.GetInput(2) :?> 'gentype_Expr in
             let _3 = parseState.GetInput(3) :?> 'gentype_ExprList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 52 "Parser.fsy"
+# 56 "Parser.fsy"
                                                           Application(_2, _3, parseState.ResultRange) 
                    )
-# 52 "Parser.fsy"
+# 56 "Parser.fsy"
                  : 'gentype_Expr));
-# 605 "Parser.fs"
+# 615 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _2 = parseState.GetInput(2) :?> 'gentype_Expr in
             let _4 = parseState.GetInput(4) :?> 'gentype_ExprListComma in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 53 "Parser.fsy"
+# 57 "Parser.fsy"
                                                                      Tuple(_2 :: _4, parseState.ResultRange) 
                    )
-# 53 "Parser.fsy"
+# 57 "Parser.fsy"
                  : 'gentype_Expr));
-# 617 "Parser.fs"
+# 627 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _2 = parseState.GetInput(2) :?> 'gentype_Expr in
             let _4 = parseState.GetInput(4) :?> 'gentype_Expr in
@@ -622,33 +632,33 @@ let _fsyacc_reductions = lazy [|
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 54 "Parser.fsy"
+# 58 "Parser.fsy"
                                                                    IfThenElse(_2, _4, _6, parseState.ResultRange) 
                    )
-# 54 "Parser.fsy"
+# 58 "Parser.fsy"
                  : 'gentype_Expr));
-# 630 "Parser.fs"
+# 640 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _2 = parseState.GetInput(2) :?> 'gentype_ExprListComma in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 55 "Parser.fsy"
+# 59 "Parser.fsy"
                                                           if (List.length _2) = 1 then _2[0] else Tuple(_2, parseState.ResultRange) 
                    )
-# 55 "Parser.fsy"
+# 59 "Parser.fsy"
                  : 'gentype_Expr));
-# 641 "Parser.fs"
+# 651 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 56 "Parser.fsy"
+# 60 "Parser.fsy"
                                             Tuple([], parseState.ResultRange) 
                    )
-# 56 "Parser.fsy"
+# 60 "Parser.fsy"
                  : 'gentype_Expr));
-# 651 "Parser.fs"
+# 661 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _3 = parseState.GetInput(3) :?> 'gentype_VarListComma in
             let _6 = parseState.GetInput(6) :?> 'gentype_Expr in
@@ -656,47 +666,93 @@ let _fsyacc_reductions = lazy [|
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 57 "Parser.fsy"
+# 61 "Parser.fsy"
                                                                                          LetTuple(_3, _6, _8, parseState.ResultRange) 
                    )
-# 57 "Parser.fsy"
+# 61 "Parser.fsy"
                  : 'gentype_Expr));
-# 664 "Parser.fs"
+# 674 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _5 = parseState.GetInput(5) :?> 'gentype_Expr in
             let _7 = parseState.GetInput(7) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 58 "Parser.fsy"
+# 62 "Parser.fsy"
                                                                             LetTuple([], _5, _7, parseState.ResultRange) 
                    )
-# 58 "Parser.fsy"
+# 62 "Parser.fsy"
                  : 'gentype_Expr));
-# 676 "Parser.fs"
+# 686 "Parser.fs"
+        (fun (parseState : FSharp.Text.Parsing.IParseState) ->
+            let _2 = parseState.GetInput(2) :?> 'gentype_Expr in
+            Microsoft.FSharp.Core.Operators.box
+                (
+                   (
+# 63 "Parser.fsy"
+                                       RefConstructor(_2, parseState.ResultRange) 
+                   )
+# 63 "Parser.fsy"
+                 : 'gentype_Expr));
+# 697 "Parser.fs"
+        (fun (parseState : FSharp.Text.Parsing.IParseState) ->
+            let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
+            let _3 = parseState.GetInput(3) :?> 'gentype_Expr in
+            Microsoft.FSharp.Core.Operators.box
+                (
+                   (
+# 64 "Parser.fsy"
+                                                                  Sequence(_1, _3, parseState.ResultRange) 
+                   )
+# 64 "Parser.fsy"
+                 : 'gentype_Expr));
+# 709 "Parser.fs"
+        (fun (parseState : FSharp.Text.Parsing.IParseState) ->
+            let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
+            let _3 = parseState.GetInput(3) :?> 'gentype_Expr in
+            Microsoft.FSharp.Core.Operators.box
+                (
+                   (
+# 65 "Parser.fsy"
+                                                            Assign(_1, _3, parseState.ResultRange) 
+                   )
+# 65 "Parser.fsy"
+                 : 'gentype_Expr));
+# 721 "Parser.fs"
+        (fun (parseState : FSharp.Text.Parsing.IParseState) ->
+            let _2 = parseState.GetInput(2) :?> 'gentype_Expr in
+            Microsoft.FSharp.Core.Operators.box
+                (
+                   (
+# 66 "Parser.fsy"
+                                                   Deref(_2, parseState.ResultRange) 
+                   )
+# 66 "Parser.fsy"
+                 : 'gentype_Expr));
+# 732 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_BindClause in
             let _3 = parseState.GetInput(3) :?> 'gentype_BindClauses in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 60 "Parser.fsy"
+# 68 "Parser.fsy"
                                                                 _1 :: _3 
                    )
-# 60 "Parser.fsy"
+# 68 "Parser.fsy"
                  : 'gentype_BindClauses));
-# 688 "Parser.fs"
+# 744 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_BindClause in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 61 "Parser.fsy"
+# 69 "Parser.fsy"
                                                 [_1] 
                    )
-# 61 "Parser.fsy"
+# 69 "Parser.fsy"
                  : 'gentype_BindClauses));
-# 699 "Parser.fs"
+# 755 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> string in
             let _3 = parseState.GetInput(3) :?> 'gentype_Type in
@@ -704,184 +760,184 @@ let _fsyacc_reductions = lazy [|
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 63 "Parser.fsy"
+# 71 "Parser.fsy"
                                                             (_1, _3, _5) 
                    )
-# 63 "Parser.fsy"
+# 71 "Parser.fsy"
                  : 'gentype_BindClause));
-# 712 "Parser.fs"
+# 768 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _2 = parseState.GetInput(2) :?> string in
             let _4 = parseState.GetInput(4) :?> 'gentype_Type in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 65 "Parser.fsy"
+# 73 "Parser.fsy"
                                                             { name = _2 ; ty = _4 } 
                    )
-# 65 "Parser.fsy"
+# 73 "Parser.fsy"
                  : 'gentype_Formal));
-# 724 "Parser.fs"
+# 780 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Formal in
             let _2 = parseState.GetInput(2) :?> 'gentype_FormalList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 67 "Parser.fsy"
+# 75 "Parser.fsy"
                                                       _1 :: _2 
                    )
-# 67 "Parser.fsy"
+# 75 "Parser.fsy"
                  : 'gentype_FormalList));
-# 736 "Parser.fs"
+# 792 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Formal in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 68 "Parser.fsy"
+# 76 "Parser.fsy"
                                                       [_1] 
                    )
-# 68 "Parser.fsy"
+# 76 "Parser.fsy"
                  : 'gentype_FormalList));
-# 747 "Parser.fs"
+# 803 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 70 "Parser.fsy"
+# 78 "Parser.fsy"
                                        [_1] 
                    )
-# 70 "Parser.fsy"
+# 78 "Parser.fsy"
                  : 'gentype_ExprList));
-# 758 "Parser.fs"
+# 814 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             let _2 = parseState.GetInput(2) :?> 'gentype_ExprList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 71 "Parser.fsy"
+# 79 "Parser.fsy"
                                                 _1 :: _2 
                    )
-# 71 "Parser.fsy"
+# 79 "Parser.fsy"
                  : 'gentype_ExprList));
-# 770 "Parser.fs"
+# 826 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 73 "Parser.fsy"
+# 81 "Parser.fsy"
                                             [_1] 
                    )
-# 73 "Parser.fsy"
+# 81 "Parser.fsy"
                  : 'gentype_ExprListComma));
-# 781 "Parser.fs"
+# 837 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             let _3 = parseState.GetInput(3) :?> 'gentype_ExprList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 74 "Parser.fsy"
+# 82 "Parser.fsy"
                                                            _1 :: _3 
                    )
-# 74 "Parser.fsy"
+# 82 "Parser.fsy"
                  : 'gentype_ExprListComma));
-# 793 "Parser.fs"
+# 849 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> string in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 76 "Parser.fsy"
+# 84 "Parser.fsy"
                                          [_1] 
                    )
-# 76 "Parser.fsy"
+# 84 "Parser.fsy"
                  : 'gentype_VarListComma));
-# 804 "Parser.fs"
+# 860 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> string in
             let _3 = parseState.GetInput(3) :?> 'gentype_VarListComma in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 77 "Parser.fsy"
+# 85 "Parser.fsy"
                                                             _1 :: _3 
                    )
-# 77 "Parser.fsy"
+# 85 "Parser.fsy"
                  : 'gentype_VarListComma));
-# 816 "Parser.fs"
+# 872 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Type in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 79 "Parser.fsy"
+# 87 "Parser.fsy"
                                        [_1] 
                    )
-# 79 "Parser.fsy"
+# 87 "Parser.fsy"
                  : 'gentype_TypeList));
-# 827 "Parser.fs"
+# 883 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Type in
             let _3 = parseState.GetInput(3) :?> 'gentype_TypeList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 80 "Parser.fsy"
+# 88 "Parser.fsy"
                                                       _1 :: _3 
                    )
-# 80 "Parser.fsy"
+# 88 "Parser.fsy"
                  : 'gentype_TypeList));
-# 839 "Parser.fs"
+# 895 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 82 "Parser.fsy"
+# 90 "Parser.fsy"
                                       IntTy(parseState.ResultRange) 
                    )
-# 82 "Parser.fsy"
+# 90 "Parser.fsy"
                  : 'gentype_Type));
-# 849 "Parser.fs"
+# 905 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Type in
             let _3 = parseState.GetInput(3) :?> 'gentype_Type in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 83 "Parser.fsy"
+# 91 "Parser.fsy"
                                            FunTy(_1, _3, parseState.ResultRange) 
                    )
-# 83 "Parser.fsy"
+# 91 "Parser.fsy"
                  : 'gentype_Type));
-# 861 "Parser.fs"
+# 917 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _2 = parseState.GetInput(2) :?> 'gentype_TypeList in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 84 "Parser.fsy"
+# 92 "Parser.fsy"
                                                      if _2.Length = 1 then _2[0] else ProdTy(_2, parseState.ResultRange) 
                    )
-# 84 "Parser.fsy"
+# 92 "Parser.fsy"
                  : 'gentype_Type));
-# 872 "Parser.fs"
+# 928 "Parser.fs"
         (fun (parseState : FSharp.Text.Parsing.IParseState) ->
             let _1 = parseState.GetInput(1) :?> 'gentype_Expr in
             Microsoft.FSharp.Core.Operators.box
                 (
                    (
-# 86 "Parser.fsy"
+# 94 "Parser.fsy"
                                        _1 
                    )
-# 86 "Parser.fsy"
+# 94 "Parser.fsy"
                  : 'gentype_prog));
 |]
-# 884 "Parser.fs"
+# 940 "Parser.fs"
 let tables : FSharp.Text.Parsing.Tables<_> = 
   { reductions = _fsyacc_reductions.Value;
     endOfInputTag = _fsyacc_endOfInputTag;
@@ -900,7 +956,7 @@ let tables : FSharp.Text.Parsing.Tables<_> =
                               match parse_error_rich with 
                               | Some f -> f ctxt
                               | None -> parse_error ctxt.Message);
-    numTerminals = 54;
+    numTerminals = 55;
     productionToNonTerminalTable = _fsyacc_productionToNonTerminalTable  }
 let engine lexer lexbuf startState = tables.Interpret(lexer, lexbuf, startState)
 let expr lexer lexbuf : Expr =

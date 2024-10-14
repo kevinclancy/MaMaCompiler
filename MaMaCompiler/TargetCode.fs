@@ -18,6 +18,20 @@ type Instruction =
     | Gt
     | Lt
     | Neg
+    /// Remove the top value on the stack
+    | Pop
+    /// Replace a reference to a "reference" item on top of the stack
+    /// with a reference to whatever the "reference" item refers to
+    | GetRef
+    /// Pop a reference to a heap object `h` off of the stack.
+    /// Then, create a new R-object referring to `h`, pushing a reference to this R-object onto the stack.
+    | MkRef
+    /// Assume a reference to an R-object is on top of the stack and a reference to another
+    /// heap object `h` directly below it.
+    ///
+    /// This instruction reassigns the R-object's reference to refer to `h`, pops both off the stack,
+    /// and then pushes an empty tuple onto the stack.
+    | RefAssign
     /// Replace a reference to a "basic" item on top of the
     /// stack with the value stored in the "basic" item
     | GetBasic
@@ -84,7 +98,6 @@ type Instruction =
     ///
     /// If the top of the stack is not a reference to a C-Object then `Eval` does nothing.
     | Eval
-
     /// Assume the top of the stack contains the value produced from evaluating a closure,
     /// directly below that are organizational cells, and below that is the closure we just evaluated.
     ///

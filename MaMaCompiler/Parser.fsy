@@ -13,8 +13,8 @@ open Syntax
 %token LPAREN RPAREN LBRACK RBRACK LSQUAREBRACK RSQUAREBRACK TYPEINT
 %token PLUS MINUS TIMES LEQ GEQ LT GT GETS SEMICOLON IF ELSE THEN EQ IN LET
 %token WHILE FOR SWITCH CASE DEFAULT COLON STRUCT BREAK COMMA PERIOD
-%token NEW AMPERSAND RIGHTARROW DELETE RETURN VOID EOF FUN TYPEDEF TO
-%token NIL CONS REC AND WITH MATCH BIND
+%token RIGHTARROW DELETE RETURN VOID EOF FUN TYPEDEF TO
+%token NIL CONS REC AND WITH MATCH BIND REF BANG ASSIGN
 
 %right GETS
 
@@ -22,16 +22,20 @@ open Syntax
 
 %left LET
 
-%left PERIOD
-%left AMPERSAND
-%left RIGHTARROW
-%left TIMES
-%left PLUS MINUS
+%left SEMICOLON
+%left REF
+%left ASSIGN
+
 %left EQ LEQ GEQ LT GT
 
+%left PLUS MINUS
+%left TIMES
+%left RIGHTARROW
+
+%left PERIOD
+%left BANG
+
 %right TO
-
-
 
 %%
 
@@ -56,6 +60,10 @@ Expr : Expr PLUS Expr  %prec PLUS  { Plus($1, $3, parseState.ResultRange) }
      | LPAREN RPAREN { Tuple([], parseState.ResultRange) }
      | LET LPAREN VarListComma RPAREN BIND Expr IN Expr %prec LET { LetTuple($3, $6, $8, parseState.ResultRange) }
      | LET LPAREN RPAREN BIND Expr IN Expr %prec LET { LetTuple([], $5, $7, parseState.ResultRange) }
+     | REF Expr { RefConstructor($2, parseState.ResultRange) }
+     | Expr SEMICOLON Expr %prec SEMICOLON { Sequence($1, $3, parseState.ResultRange) }
+     | Expr ASSIGN Expr %prec ASSIGN { Assign($1, $3, parseState.ResultRange) }
+     | BANG Expr %prec BANG { Deref($2, parseState.ResultRange) }
 
 BindClauses : BindClause AND BindClauses { $1 :: $3 }
             | BindClause { [$1] }

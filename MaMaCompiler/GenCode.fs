@@ -445,3 +445,78 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                 ]
             )
         }
+    | RefConstructor(initExpr, _) ->
+        gen {
+            let! initExprTy, initExprCode = codeV ctxt initExpr stackLevel
+            return (
+                RefTy(initExprTy, noRange),
+                List.concat [
+                    initExprCode
+                    [MkRef]
+                ]
+            )
+        }
+    | Deref(refExpr, rng) ->
+        gen {
+            let! refExprTy, refExprCode = codeV ctxt refExpr stackLevel
+            let! elemTy =
+                match refExprTy with
+                | RefTy(elemTy, _) ->
+                    gen {
+                        return elemTy
+                    }
+                | _ ->
+                    error $"Expected {refExpr} to have a reference type but instead found {refExprTy}" rng
+            return (
+                elemTy,
+                List.concat [
+                    refExprCode
+                    [GetRef]
+                ]
+            )
+        }
+    | Assign(refExpr, newValExpr, _) ->
+        gen {
+            let! newValTy, newValCode = codeV ctxt newValExpr stackLevel
+            let! refExprTy, refExprCode = codeV ctxt refExpr (stackLevel + 1)
+            do!
+                match refExprTy with
+                | RefTy(innerTy, _) ->
+                    if Ty.IsEqual innerTy newValTy then
+                        gen {
+                            return ()
+                        }
+                    else
+                        error $"expected lhs to have type Ref {newValTy} but instead had type {refExprTy}" refExpr.Range
+                | _ ->
+                    error $"expected lhs to have reference type but instead it had type {refExprTy}" refExpr.Range
+            return (
+                ProdTy([], noRange),
+                List.concat [
+                    newValCode
+                    refExprCode
+                    [RefAssign]
+                ]
+            )
+        }
+    | Sequence(firstExpr, secondExpr, rng) ->
+        gen {
+            let! firstExprTy, firstExprCode = codeV ctxt firstExpr stackLevel
+            let! secondExprTy, secondExprCode = codeV ctxt secondExpr stackLevel
+            do!
+                match firstExprTy with
+                | ProdTy([], _) ->
+                    gen {
+                        return ()
+                    }
+                | _ ->
+                    error $"expected {firstExpr} to have unit type." firstExpr.Range
+            return (
+                secondExprTy,
+                List.concat [
+                    firstExprCode
+                    [Pop]
+                    secondExprCode
+                ]
+            )
+        }
