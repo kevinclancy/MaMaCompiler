@@ -333,13 +333,7 @@ let execute (code : Instruction []) : HeapObject =
             PC <- PC + 1
             true
         | Return(n) ->
-            if SP - FP - 1 = n then
-                popenv ()
-                true
-            else
-                slide n
-                apply ()
-                true
+            failwith "todo"
         | LoadCAddr(addr) ->
             failwith "The 'LoadCAddr' instruction should be resolved before executing code"
         | SymbolicAddress(_) ->
