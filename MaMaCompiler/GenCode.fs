@@ -20,17 +20,7 @@ open Environment
 /// * The type of the variable
 /// * Code to push the variable and possibly evaluate a closure if it's bound to one
 let getVar (ctxt : Context) (varName : string) (varRng : Range) (stackLevel : int) : Gen<Ty * Instruction> =
-    match ctxt.varCtxt.TryFind(varName) with
-    | Some { ty = ty ; address = Local(offset) } ->
-        gen {
-            return (ty, PushLoc <| stackLevel - offset)
-        }
-    | Some { ty = ty ; address = Global(addr) } ->
-        gen {
-            return (ty, PushGlob addr)
-        }
-    | None ->
-        error $"identifier '{varName}' unknown" varRng
+    failwith "exercise part 1"
 
 /// For a binary operation `e1 binOp e2`, generate code to push the result's raw basic value
 /// (not heap reference) onto the stack
@@ -284,10 +274,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
             )
         }
     | Var(name, rng) ->
-        gen {
-            let! ty, instr = getVar ctxt name rng stackLevel
-            return (ty, [instr ; Eval])
-        }
+        failwith "exercise pt 2"
     | Let(varName, boundExpr, bodyExpr, rng) ->
         gen {
             let! tyBound, codeBound = codeC ctxt boundExpr stackLevel
