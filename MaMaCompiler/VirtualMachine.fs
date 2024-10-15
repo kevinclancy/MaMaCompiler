@@ -79,13 +79,7 @@ let execute (code : Instruction []) : HeapObject =
             failwith "expected basic"
 
     let mkvec0 () : unit =
-        let n = SP - FP
-        let array = Array.create n 0
-        SP <- FP + 1
-        for i in 0 .. (n-1) do
-            array[i] <- S[SP + i]
-        H.Add(Vector(n, array))
-        S[SP] <- H.Count - 1
+        failwith "todo"
 
     let wrap () : unit =
         H.Add(Function(PC - 1, S[SP], GP))
