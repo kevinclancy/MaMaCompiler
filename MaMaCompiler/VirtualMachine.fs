@@ -160,14 +160,7 @@ let execute (code : Instruction []) : HeapObject =
             PC <- PC + 1
             true
         | PushGlob(n) ->
-            let (ExpectVector(m, elems)) = H[GP]
-            if n < m then
-                S[SP + 1] <- elems[n]
-                SP <- SP + 1
-                PC <- PC + 1
-                true
-            else
-                failwith $"fewer than {n} globals"
+            failwith "todo"
         | GetVec ->
             let (ExpectVector(n, elems)) = H[S[SP]]
             for i in 0 .. n-1 do
