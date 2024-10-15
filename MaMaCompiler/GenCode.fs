@@ -356,48 +356,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
             )
         }
     | FunAbstraction(formals, body, rng) ->
-        gen {
-            let freeVarList = Set.toList expr.FreeVars
-            let! globalVars =
-                letAll <| List.mapi (fun i varName -> getVar ctxt varName rng (stackLevel + i)) freeVarList
-            let pushGlobals = List.map snd globalVars
-            let! callStartAddr = getFreshSymbolicAddr
-            let! afterAddr = getFreshSymbolicAddr
-            let addFormalToContext (ctxt : Context) (i : int)  (f : Formal) : Context =
-                let entry = {
-                    address = Local(-i)
-                    ty = f.ty
-                }
-                { ctxt with varCtxt = ctxt.varCtxt.Add(f.name, entry) }
-            let addGlobalToContext (ctxt : Context)
-                                   (i : int)
-                                   ((name, (ty,instr)) : string * (Ty * Instruction)) : Context =
-                let entry = {
-                    address = Global(i)
-                    ty = ty
-                }
-                { ctxt with varCtxt = ctxt.varCtxt.Add(name, entry) }
-            let ctxt' =
-                List.fold2 addFormalToContext ctxt [0..formals.Length-1] formals
-            let ctxt'' =
-                List.fold2 addGlobalToContext ctxt' [0..freeVarList.Length-1] (List.zip freeVarList globalVars)
-            let! bodyTy, bodyCode = codeV ctxt'' body 0
-            let funTy = List.fold (fun (ty : Ty) (f : Formal) -> FunTy(f.ty, ty, noRange)) bodyTy formals
-            return (
-                funTy,
-                List.concat [
-                    pushGlobals
-                    [MkVec <| List.length freeVarList]
-                    [MkFunVal callStartAddr]
-                    [Jump afterAddr]
-                    [SymbolicAddress callStartAddr]
-                    [TArg <| formals.Length]
-                    bodyCode
-                    [Return <| formals.Length]
-                    [SymbolicAddress afterAddr]
-                ]
-            )
-        }
+        failwith "todo"
     | Application(fnExpr, args, _) ->
         gen {
             let! tyFun, codeFun = codeV ctxt fnExpr (stackLevel + args.Length + 3)
