@@ -289,13 +289,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
             return (ty, [instr ; Eval])
         }
     | Let(varName, boundExpr, bodyExpr, rng) ->
-        gen {
-            let! tyBound, codeBound = codeC ctxt boundExpr stackLevel
-            let varEntry = { address = Local(stackLevel + 1); ty = tyBound }
-            let ctxt' = { ctxt with varCtxt = ctxt.varCtxt.Add(varName, varEntry) }
-            let! tyBody, codeBody = codeV ctxt' bodyExpr (stackLevel + 1)
-            return (tyBody, List.concat [codeBound ; codeBody ; [Slide 1]])
-        }
+        failwith "todo"
     | LetTuple(varNames, boundExpr, body, rng) ->
         gen {
             let! tyBound, codeBound = codeV ctxt boundExpr stackLevel
