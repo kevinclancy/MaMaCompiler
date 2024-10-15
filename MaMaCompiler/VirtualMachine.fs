@@ -176,14 +176,7 @@ let execute (code : Instruction []) : HeapObject =
             PC <- PC + 1
             true
         | MkVec(n) ->
-            let array = Array.create n 0
-            let vec_addr = new_vector n array
-            SP <- SP - n + 1
-            for i in 0 .. (n - 1) do
-                array[i] <- S[SP + i]
-            S[SP] <- vec_addr
-            PC <- PC + 1
-            true
+            failwith "todo"
         | MkFunVal(code_addr) ->
             let vec_addr = new_vector 0 (Array.create 0 0)
             S[SP] <- new_function code_addr vec_addr S[SP]
