@@ -476,7 +476,29 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
             )
         }
     | Assign(refExpr, newValExpr, _) ->
-        failwith "todo"
+        gen {
+            let! newValTy, newValCode = codeV ctxt newValExpr stackLevel
+            let! refExprTy, refExprCode = codeV ctxt refExpr (stackLevel + 1)
+            do!
+                match refExprTy with
+                | RefTy(innerTy, _) ->
+                    if Ty.IsEqual innerTy newValTy then
+                        gen {
+                            return ()
+                        }
+                    else
+                        error $"expected lhs to have type Ref {newValTy} but instead had type {refExprTy}" refExpr.Range
+                | _ ->
+                    error $"expected lhs to have reference type but instead it had type {refExprTy}" refExpr.Range
+            return (
+                ProdTy([], noRange),
+                List.concat [
+                    newValCode
+                    refExprCode
+                    [RefAssign]
+                ]
+            )
+        }
     | Sequence(firstExpr, secondExpr, rng) ->
         gen {
             let! firstExprTy, firstExprCode = codeV ctxt firstExpr stackLevel
