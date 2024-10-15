@@ -219,15 +219,7 @@ let execute (code : Instruction []) : HeapObject =
             PC <- PC + 1
             true
         | Eval ->
-            match H[S[SP]] with
-            | Closure(_, _) ->
-                mark PC
-                pushloc 3
-                apply0 ()
-                true
-            | _ ->
-                PC <- PC + 1
-                true
+            failwith "todo: implement this case"
         | Apply ->
             apply ()
             true
