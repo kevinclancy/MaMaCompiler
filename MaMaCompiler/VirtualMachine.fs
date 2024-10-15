@@ -106,13 +106,7 @@ let execute (code : Instruction []) : HeapObject =
         SP <- SP + 3
 
     let apply () : unit =
-        let (ExpectFunction(code_addr, args_addr, globals_addr)) = H[S[SP]]
-        let (ExpectVector(n_args, array_args)) = H[args_addr]
-        for i in 0 .. (n_args-1) do
-            S[SP + i] <- array_args[i]
-        SP <- SP + n_args - 1
-        GP <- globals_addr
-        PC <- code_addr
+        failwith "todo"
 
     let apply0 () : unit =
         let (ExpectClosure(code_addr, globals_vec_addr)) = H[S[SP]]
