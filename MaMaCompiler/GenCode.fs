@@ -110,31 +110,50 @@ and binOpV (ctxt : Context) (e1 : Expr) (e2 : Expr) (instr : Instruction) (stack
 /// * The type of the expression
 /// * Code that pushes the closure of `expr` onto the stack
 and codeC (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Instruction>> =
-    gen {
-            let freeVarList = Set.toList expr.FreeVars
-            let! globalVars =
-                letAll <| List.mapi (fun i varName -> getVar ctxt varName noRange (stackLevel + i)) freeVarList
-            let pushGlobals = List.map snd globalVars
-            let foldFreeVar (ctxt : Context) ((v, (ty, _)) : string * (Ty * Instruction)) (i : int) : Context =
-                { ctxt with varCtxt = ctxt.varCtxt.Add(v, { ty = ty ; address = Global(i) }) }
-            let ctxt' = List.fold2 foldFreeVar ctxt (List.zip freeVarList globalVars) [0 .. freeVarList.Length-1]
-            let! tyExpr, codeExpr = codeV ctxt' expr 0
-            let! executeClosureAddr = getFreshSymbolicAddr
-            let! afterAddr = getFreshSymbolicAddr
+    match expr with
+    | Int(n, _) ->
+        gen {
             return (
-                tyExpr,
-                List.concat [
-                    pushGlobals
-                    [MkVec globalVars.Length]
-                    [MkClos executeClosureAddr]
-                    [Jump afterAddr]
-                    [SymbolicAddress executeClosureAddr]
-                    codeExpr
-                    [Update]
-                    [SymbolicAddress afterAddr]
-                ]
+                IntTy(noRange),
+                [LoadC n ; MkBasic]
             )
-    }
+        }
+    | Var(name, rng) ->
+        gen {
+            let! varTy, varInstr = getVar ctxt name rng stackLevel
+            return (
+                varTy,
+                [varInstr]
+            )
+        }
+    | FunAbstraction(_,_,_) as funAbs ->
+        codeV ctxt funAbs stackLevel
+    | _ ->
+      gen {
+        let freeVarList = Set.toList expr.FreeVars
+        let! globalVars =
+            letAll <| List.mapi (fun i varName -> getVar ctxt varName noRange (stackLevel + i)) freeVarList
+        let pushGlobals = List.map snd globalVars
+        let foldFreeVar (ctxt : Context) ((v, (ty, _)) : string * (Ty * Instruction)) (i : int) : Context =
+            { ctxt with varCtxt = ctxt.varCtxt.Add(v, { ty = ty ; address = Global(i) }) }
+        let ctxt' = List.fold2 foldFreeVar ctxt (List.zip freeVarList globalVars) [0 .. freeVarList.Length-1]
+        let! tyExpr, codeExpr = codeV ctxt' expr 0
+        let! executeClosureAddr = getFreshSymbolicAddr
+        let! afterAddr = getFreshSymbolicAddr
+        return (
+            tyExpr,
+            List.concat [
+                pushGlobals
+                [MkVec globalVars.Length]
+                [MkClos executeClosureAddr]
+                [Jump afterAddr]
+                [SymbolicAddress executeClosureAddr]
+                codeExpr
+                [Update]
+                [SymbolicAddress afterAddr]
+            ]
+        )
+      }
 
 /// Generates code that evaluates the expression `expr` and pushes its result's raw basic value
 /// (not heap reference) onto the stack
