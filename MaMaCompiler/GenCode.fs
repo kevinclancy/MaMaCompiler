@@ -5,8 +5,7 @@ open GenComputation
 open TargetCode
 open Environment
 
-/// Generates code to push the value corresponding to a variable onto the stack,
-/// evaluating a closure if necessary
+/// Generates code to push the value corresponding to a variable onto the stack
 ///
 /// ## Parameters
 ///
@@ -18,7 +17,7 @@ open Environment
 /// ## Returns
 ///
 /// * The type of the variable
-/// * Code to push the variable and possibly evaluate a closure if it's bound to one
+/// * Code to push the variable onto the stack
 let getVar (ctxt : Context) (varName : string) (varRng : Range) (stackLevel : int) : Gen<Ty * Instruction> =
     match ctxt.varCtxt.TryFind(varName) with
     | Some { ty = ty ; address = Local(offset) } ->
