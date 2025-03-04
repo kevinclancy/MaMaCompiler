@@ -424,3 +424,34 @@ type Fixture () =
         let result = execute code'
 
         Assert.That( (result = Basic(2)) )
+
+    [<Test>]
+    member this.testConstructors () =
+        let { typedefs = typedefs ; expr = e } = parseProg """
+        typedef bool =
+          | True of ()
+          | False of ()
+        let a = ref (True ()) in
+        a := (False ());
+        !a
+        """
+        let ctxt = Context.Empty.WithTypedefs typedefs
+        let ty, code =
+            match run (codeV ctxt e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IdTy("bool", _) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'bool'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        match result with
+        | Sum(1, _) ->
+            ()
+        | _ ->
+            Assert.That(false)

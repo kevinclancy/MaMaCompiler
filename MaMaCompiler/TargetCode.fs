@@ -18,6 +18,13 @@ type Instruction =
     | Gt
     | Lt
     | Neg
+    /// MkSum(n) Pops value v from top of stack. Pushes a value of a sum datatype onto the stack with variant index n
+    /// and argument v
+    | MkSum of n:int
+    /// TSum(addr) Pops an address of a sum datatype off the stack, pushes the variant constructor argument onto the stack,
+    /// and jumps to (addr + n), where n is the variant index of the sum value
+    /// (the instruction at addr + n is supposed to jump somewhere else, i.e. it's part of a "jump table")
+    | TSum of addr:int
     /// Remove the top value on the stack
     | Pop
     /// Replace a reference to a "reference" item on top of the stack

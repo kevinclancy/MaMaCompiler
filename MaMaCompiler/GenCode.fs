@@ -4,6 +4,7 @@ open Syntax
 open GenComputation
 open TargetCode
 open Environment
+open Utils
 
 /// Generates code to push the value corresponding to a variable onto the stack
 ///
@@ -301,6 +302,52 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                 ]
             )
         }
+    | Match(scrutinee, cases, _) ->
+        gen {
+            let! scrutTy, scrutCode = codeV ctxt scrutinee stackLevel
+
+            /// Returns (ty, code, addr), where *ty* is type of case body,
+            /// *code* is a list of instructions that evaluate the case body
+            /// and push its value onto the stack, and *addr* is the symbolic address of *code*
+            let genCase (case : MatchCase) : Gen<Ty * List<Instruction> * int> =
+                match case with
+                | ConstructorCase(constructorName, argVar, body, caseRng) ->
+                    gen {
+                        let! bodyTy, bodyCode = codeV ctxt body stackLevel
+                        let! addr = getFreshSymbolicAddr
+                        return (
+                            bodyTy,
+                            List.concat [
+                                [SymbolicAddress addr]
+                                bodyCode
+                            ],
+                            addr
+                        )
+                    }
+
+            let! caseResults = letAll (List.map genCase cases)
+            let (caseTys, caseCodes, caseAddrs) = List.unzip3 caseResults
+
+            let ty0 = caseTys[0]
+
+            let checkTy ((ty, case) : Ty * MatchCase) : Gen<unit> =
+                if Ty.IsEqual ty ty0 then
+                    pass
+                else
+                    error
+                        $"Expected case to have type '{ty0.ToString()}' but instead found '{ty.ToString()}'"
+                        case.Range
+
+            do! doAll (List.map checkTy (List.zip caseTys cases))
+
+            let! jumpTableAddr = getFreshSymbolicAddr
+            let jumpTable = List.concat [
+                [SymbolicAddress jumpTableAddr]
+                List.map (fun addr -> Jump addr) caseAddrs
+            ]
+
+            failwith "blerg"
+        }
     | Var(name, rng) ->
         gen {
             let! ty, instr = getVar ctxt name rng stackLevel
@@ -448,6 +495,23 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                     codeFun
                     [Apply]
                     [SymbolicAddress afterAddr]
+                ]
+            )
+        }
+    | ConstructorApplication(name, arg, _) ->
+        gen {
+            let! argTy, argCode = codeV ctxt arg stackLevel
+            let constructor = ctxt.constructorCtxt[name]
+            do!
+                if Ty.IsEqual argTy constructor.contentTy then
+                    pass
+                else
+                    error $"Expected expression of type '{constructor.contentTy}', but found '{argTy}'" arg.Range
+            return (
+                IdTy(constructor.sumTyName, noRange),
+                List.concat [
+                    argCode
+                    [MkSum constructor.index]
                 ]
             )
         }

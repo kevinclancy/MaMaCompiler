@@ -2,19 +2,28 @@ module Syntax
 
 open Utils
 
-type Ty =
+/// Variant(constructorName, type)
+type Variant = string * Ty
+
+and Ty =
     | IntTy of Range
     | FunTy of dom:Ty * cod:Ty * Range
     | ProdTy of components:List<Ty> * Range
     | RefTy of containedTy:Ty * Range
+    /// SumTy(variants, rng) - A sum type, where *variants* maps each constructor name to the type of
+    /// the constructor argument
+    | SumTy of variants:List<Variant> * Range
+    | IdTy of name:string * Range
 
     with
         member this.Range : Range =
             match this with
             | IntTy(rng)
+            | IdTy(_, rng)
             | FunTy(_,_,rng)
             | ProdTy(_,rng)
-            | RefTy(_,rng) ->
+            | RefTy(_,rng)
+            | SumTy(_, rng) ->
                 rng
 
         member this.Apply (n : int) : Ty =
@@ -35,6 +44,10 @@ type Ty =
 
         static member IsEqual (tyA : Ty) (tyB : Ty) : bool =
             match (tyA, tyB) with
+            | SumTy(variantsA, _), SumTy(variantsB, _) ->
+                false
+            | IdTy(n,_), IdTy(m,_) when n = m ->
+                true
             | IntTy(_), IntTy(_) ->
                 true
             | FunTy(domA, codA, _), FunTy(domB, codB, _) ->
@@ -49,12 +62,29 @@ type Ty =
             | _ ->
                 false
 
+type Typedef =
+    | Typedef of typename:string * variants:List<Variant> * Range
+
 type Formal = {
     name : string
     ty : Ty
 }
 
-type Expr =
+type MatchCase =
+    | ConstructorCase of name:string * argVar:string * body:Expr * Range
+
+    with
+        member this.FreeVars : Set<string> =
+            match this with
+            | ConstructorCase(name, argVar, body, _) ->
+                Set.remove argVar body.FreeVars
+
+        member this.Range : Range =
+            match this with
+            | ConstructorCase(_, _, _, rng) ->
+                rng
+
+and Expr =
     | Plus of Expr * Expr * Range
     | Minus of Expr * Expr * Range
     | Times of Expr * Expr * Range
@@ -68,6 +98,8 @@ type Expr =
     | Let of bound_var:string * bindTo:Expr * body:Expr * Range
     | LetRec of bindings:List<string * Ty * Expr> * body:Expr * Range
     | Application of fnExpr:Expr * args:List<Expr> * Range
+    | ConstructorApplication of name:string * arg:Expr * Range
+    | Match of scrutinee:Expr * cases:List<MatchCase> * Range
     | IfThenElse of cond:Expr * thenExpr:Expr * elseExpr:Expr * Range
     | Int of int * Range
     | Tuple of List<Expr> * Range
@@ -104,6 +136,12 @@ type Expr =
             | Application(fnExpr, argExprs, _) ->
                 let argFreeVars = Set.unionMany <| List.map (fun (x : Expr) -> x.FreeVars) argExprs
                 Set.union fnExpr.FreeVars argFreeVars
+            | ConstructorApplication(name, arg, _) ->
+                arg.FreeVars
+            | Match(scrutinee, matchCases, _) ->
+                Set.union
+                    scrutinee.FreeVars
+                    (Set.unionMany <| List.map (fun (x : MatchCase) -> x.FreeVars) matchCases)
             | IfThenElse(condExpr, thenExpr, elseExpr, _) ->
                 Set.unionMany [
                     condExpr.FreeVars
@@ -142,7 +180,9 @@ type Expr =
             | Let(_,_,_,rng)
             | LetRec(_,_,rng)
             | Application(_,_,rng)
+            | ConstructorApplication(_,_,rng)
             | IfThenElse(_,_,_,rng)
+            | Match(_,_,rng)
             | Int(_,rng)
             | Tuple(_, rng)
             | LetTuple(_,_,_,rng)
@@ -151,3 +191,5 @@ type Expr =
             | Assign(_, _, rng)
             | Sequence(_, _, rng) ->
                 rng
+
+type Prog = { typedefs : List<Typedef> ; expr : Expr }

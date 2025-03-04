@@ -42,6 +42,7 @@ rule token = parse
 | "="            { BIND }
 | ":="           { ASSIGN }
 | "!"            { BANG }
+| "|"            { PIPE }
 | "=="           { EQ }
 | "<="			 { LEQ }
 | ">="           { GEQ }
@@ -63,6 +64,7 @@ rule token = parse
 | "then"         { THEN }
 | "else"         { ELSE }
 | "while"        { WHILE }
+| "of"           { OF }
 | "for"          { FOR }
 | "switch"       { SWITCH }
 | "case"         { CASE }
@@ -78,7 +80,8 @@ rule token = parse
 | "void"         { VOID }
 | "typedef"      { TYPEDEF }
 | ("//")         { lastComment <- "" ; comment lexbuf }
-| ['a'-'z''A'-'Z']['a'-'z''A'-'Z''1'-'9']* { ID(lexeme lexbuf) }
+| ['A'-'Z']['a'-'z''A'-'Z''1'-'9']* { CONSTRUCTOR(lexeme lexbuf) }
+| ['a'-'z']['a'-'z''A'-'Z''1'-'9']* { ID(lexeme lexbuf) }
 | ['-']?digit+                             { INT (Int32.Parse(lexeme lexbuf)) }
 | eof            { EOF }
 

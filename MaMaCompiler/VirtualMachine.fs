@@ -7,6 +7,9 @@ let maxHeapMem = 10000
 
 type HeapObject =
     | Basic of int
+    /// Sum(n,arg) - A value of a sum datatype, where n is the variant index and arg is
+    /// the heap address of the argument of the variant constructor
+    | Sum of n:int * arg:int
     | Closure of code_addr:int * global_vec:int
     | Function of code_addr:int * argument_vec:int * global_vec:int
     | Vector of length:int * elems:int array
@@ -43,6 +46,10 @@ let execute (code : Instruction []) : HeapObject =
         H.Add(Ref(contentsAddr))
         H.Count - 1
 
+    let new_sum (n : int) (arg : int) : int =
+        H.Add(Sum(n,arg))
+        H.Count - 1
+
     let (|ExpectRef|) (r : HeapObject) : int =
         match r with
         | Ref(n) ->
@@ -77,6 +84,13 @@ let execute (code : Instruction []) : HeapObject =
             n
         | _ ->
             failwith "expected basic"
+
+    let (|ExpectSum|) (sum : HeapObject) : int * int =
+        match sum with
+        | Sum(variantInd, contentAddr) ->
+            variantInd, contentAddr
+        | _ ->
+            failwith "expected sum variant"
 
     let mkvec0 () : unit =
         let n = SP - FP
@@ -184,6 +198,12 @@ let execute (code : Instruction []) : HeapObject =
             S[SP] <- vec_addr
             PC <- PC + 1
             true
+        | MkSum(n) ->
+            let arg = S[SP]
+            let sum_addr = new_sum n arg
+            S[SP] <- sum_addr
+            PC <- PC + 1
+            true
         | MkFunVal(code_addr) ->
             let vec_addr = new_vector 0 (Array.create 0 0)
             S[SP] <- new_function code_addr vec_addr S[SP]
@@ -217,6 +237,11 @@ let execute (code : Instruction []) : HeapObject =
             let (ExpectBasic n) = H[S[SP]]
             S[SP] <- n
             PC <- PC + 1
+            true
+        | TSum(jumpTableAddr) ->
+            let (ExpectSum (variantInd, argAddr)) = H[S[SP]]
+            S[SP] <- argAddr
+            PC <- jumpTableAddr + variantInd
             true
         | Eval ->
             match H[S[SP]] with
