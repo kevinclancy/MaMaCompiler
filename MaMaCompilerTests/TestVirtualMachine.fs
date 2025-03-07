@@ -426,16 +426,23 @@ type Fixture () =
         Assert.That( (result = Basic(2)) )
 
     [<Test>]
-    member this.testConstructors () =
+    member this.testMatch () =
         let { typedefs = typedefs ; expr = e } = parseProg """
         typedef bool =
           | True of ()
           | False of ()
-        let a = ref (True ()) in
-        a := (False ());
-        !a
+        match (True ()) with
+        | True x ->
+            1
+        | False x ->
+            2
         """
-        let ctxt = Context.Empty.WithTypedefs typedefs
+        let ctxt =
+            match run (Context.Empty.WithTypedefs typedefs) with
+            | Result(ctxt', _) ->
+                ctxt'
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
         let ty, code =
             match run (codeV ctxt e 0) with
             | Result(code, _) ->
@@ -443,15 +450,223 @@ type Fixture () =
             | Error(msg, rng) ->
                 failwith $"code generation failed: {msg} at {rng}"
         match ty with
-        | IdTy("bool", _) ->
+        | IntTy(_) ->
             ()
         | _ ->
             failwith "expected output of type 'bool'"
         let code' = resolve <| List.concat [code ; [Halt]]
         let result = execute code'
 
-        match result with
-        | Sum(1, _) ->
+        Assert.That( (result = Basic(1)) )
+
+    [<Test>]
+    member this.testMatch2 () =
+        let { typedefs = typedefs ; expr = e } = parseProg """
+        typedef bool =
+          | True of ()
+          | False of ()
+        match (False ()) with
+        | True x ->
+            1
+        | False x ->
+            2
+        """
+        let ctxt =
+            match run (Context.Empty.WithTypedefs typedefs) with
+            | Result(ctxt', _) ->
+                ctxt'
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        let ty, code =
+            match run (codeV ctxt e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
             ()
         | _ ->
-            Assert.That(false)
+            failwith "expected output of type 'bool'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(2)) )
+
+    [<Test>]
+    member this.testMatch3 () =
+        let { typedefs = typedefs ; expr = e } = parseProg """
+        typedef bool =
+          | True of ()
+          | False of ()
+        let a = ref (True ()) in
+        a := (False ());
+        match !a with
+        | True x ->
+            1
+        | False x ->
+            2
+        """
+        let ctxt =
+            match run (Context.Empty.WithTypedefs typedefs) with
+            | Result(ctxt', _) ->
+                ctxt'
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        let ty, code =
+            match run (codeV ctxt e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'bool'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(2)) )
+
+    [<Test>]
+    member this.testMatchGuardFalse () =
+        let { typedefs = typedefs ; expr = e } = parseProg """
+        typedef bool =
+          | A of int
+          | B of int
+        match (A 3) with
+        | A x when x > 3 ->
+            1
+        | A x ->
+            7
+        | B x ->
+            2
+        """
+        let ctxt =
+            match run (Context.Empty.WithTypedefs typedefs) with
+            | Result(ctxt', _) ->
+                ctxt'
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        let ty, code =
+            match run (codeV ctxt e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'bool'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(7)) )
+
+    [<Test>]
+    member this.testMatchGuardTrue () =
+        let { typedefs = typedefs ; expr = e } = parseProg """
+        typedef bool =
+          | A of int
+          | B of int
+        match (A 3) with
+        | A x when x > 1 ->
+            1
+        | A x ->
+            7
+        | B x ->
+            2
+        """
+        let ctxt =
+            match run (Context.Empty.WithTypedefs typedefs) with
+            | Result(ctxt', _) ->
+                ctxt'
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        let ty, code =
+            match run (codeV ctxt e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'bool'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(1)) )
+
+    [<Test>]
+    member this.testMatchFallThrough () =
+        let { typedefs = typedefs ; expr = e } = parseProg """
+        typedef bool =
+          | A of int
+          | B of int
+        match (A 3) with
+        | A x when x < 1 ->
+            1
+        | A x  when x > 5 ->
+            7
+        | z ->
+            2
+        """
+        let ctxt =
+            match run (Context.Empty.WithTypedefs typedefs) with
+            | Result(ctxt', _) ->
+                ctxt'
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        let ty, code =
+            match run (codeV ctxt e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'bool'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(2)) )
+
+    [<Test>]
+    member this.testMatchCatchAllGuard () =
+        let { typedefs = typedefs ; expr = e } = parseProg """
+        typedef bool =
+          | A of int
+          | B of int
+        match (A 3) with
+        | z when 0 ->
+            2
+        | z ->
+            7
+        """
+        let ctxt =
+            match run (Context.Empty.WithTypedefs typedefs) with
+            | Result(ctxt', _) ->
+                ctxt'
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        let ty, code =
+            match run (codeV ctxt e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'bool'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(7)) )

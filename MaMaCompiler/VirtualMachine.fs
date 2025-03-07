@@ -155,14 +155,14 @@ let execute (code : Instruction []) : HeapObject =
         | Update ->
             popenv ()
             rewrite 1
-            PC <- PC + 1
             true
         | TArg(n) ->
             if SP - FP < n then
                 mkvec0 ()
                 wrap ()
                 popenv ()
-            PC <- PC + 1
+            else
+                PC <- PC + 1
             true
         | Rewrite(n) ->
             H[S[SP - n]] <- H[S[SP]]
@@ -239,14 +239,19 @@ let execute (code : Instruction []) : HeapObject =
             PC <- PC + 1
             true
         | TSum(jumpTableAddr) ->
-            let (ExpectSum (variantInd, argAddr)) = H[S[SP]]
-            S[SP] <- argAddr
+            let (ExpectSum (variantInd, _)) = H[S[SP]]
             PC <- jumpTableAddr + variantInd
+            true
+        | TGetConstructorArg ->
+            let (ExpectSum (_, argAddr)) = H[S[SP]]
+            SP <- SP + 1
+            S[SP] <- argAddr
+            PC <- PC + 1
             true
         | Eval ->
             match H[S[SP]] with
             | Closure(_, _) ->
-                mark PC
+                mark (PC + 1)
                 pushloc 3
                 apply0 ()
                 true
@@ -322,6 +327,11 @@ let execute (code : Instruction []) : HeapObject =
             PC <- if S[SP] = 0 then dest else (PC + 1)
             SP <- SP - 1
             true
+        | JumpNZ(dest) ->
+            let (ExpectBasic n) = H[S[SP]]
+            PC <- if n <> 0 then dest else (PC + 1)
+            SP <- SP - 1
+            true
         | JumpI(jumpOffset) ->
             PC <- S[SP] + jumpOffset
             SP <- SP - 1
@@ -373,4 +383,5 @@ let execute (code : Instruction []) : HeapObject =
     while step() do
         ()
 
-    H[S[1]]
+    assert (SP = 1)
+    H[S[SP]]

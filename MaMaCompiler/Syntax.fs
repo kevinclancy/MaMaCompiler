@@ -12,7 +12,7 @@ and Ty =
     | RefTy of containedTy:Ty * Range
     /// SumTy(variants, rng) - A sum type, where *variants* maps each constructor name to the type of
     /// the constructor argument
-    | SumTy of variants:List<Variant> * Range
+    | SumTy of variants:Map<string, Ty> * Range
     | IdTy of name:string * Range
 
     with
@@ -71,17 +71,32 @@ type Formal = {
 }
 
 type MatchCase =
-    | ConstructorCase of name:string * argVar:string * body:Expr * Range
+    | ConstructorCase of name:string * argVar:string * whenCond:Option<Expr> * body:Expr * Range
+    | CatchAllCase of varName:string * whenCond:Option<Expr> * body:Expr * Range
 
     with
+        /// Returns the name of the outer-level constructor for this case,
+        /// or "catchAll" if the cases has a catch-all pattern
+        member this.ConstructorName : string =
+            match this with
+            | ConstructorCase(name, _, _, _, _) ->
+                name
+            | CatchAllCase(_, _, _, _) ->
+                "catchAll"
+
         member this.FreeVars : Set<string> =
             match this with
-            | ConstructorCase(name, argVar, body, _) ->
-                Set.remove argVar body.FreeVars
+            | ConstructorCase(name, argVar, whenCond, body, _) ->
+                let whenCondVars = match whenCond with | Some(x) -> x.FreeVars | None -> Set.empty
+                Set.remove argVar (Set.union whenCondVars body.FreeVars)
+            | CatchAllCase(varName, whenCond, body, _) ->
+                let whenCondVars = match whenCond with | Some(x) -> x.FreeVars | None -> Set.empty
+                Set.remove varName (Set.union whenCondVars body.FreeVars)
 
         member this.Range : Range =
             match this with
-            | ConstructorCase(_, _, _, rng) ->
+            | ConstructorCase(_, _, _, _, rng)
+            | CatchAllCase(_, _, _, rng) ->
                 rng
 
 and Expr =

@@ -306,30 +306,223 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         gen {
             let! scrutTy, scrutCode = codeV ctxt scrutinee stackLevel
 
-            /// Returns (ty, code, addr), where *ty* is type of case body,
-            /// *code* is a list of instructions that evaluate the case body
-            /// and push its value onto the stack, and *addr* is the symbolic address of *code*
-            let genCase (case : MatchCase) : Gen<Ty * List<Instruction> * int> =
-                match case with
-                | ConstructorCase(constructorName, argVar, body, caseRng) ->
+            // The address directly after the match expression
+            let! afterAddr = getFreshSymbolicAddr
+
+            let! scrutTyVariants =
+                match scrutTy with
+                | IdTy(name,_) ->
+                    match ctxt.tyCtxt.TryFind name with
+                    | Some(SumTy(variants, _)) ->
+                        gen {
+                            return variants
+                        }
+                    | _ ->
+                        error $"Match scrutinee expected to have sum type, but found '{scrutTy}'" scrutinee.Range
+                | _ ->
+                    error $"Match scrutinee expected to have sum type, but found '{scrutTy}'" scrutinee.Range
+
+            // *cases* produces a map from constructor names to bodyTy, code, addr records
+            // also produce a default case named "default" -- it raises an exception if default case isn't provided
+            // otherwise, it implements the body of the default case
+
+            /// Add *case* to the list whose key is its constructorName
+            /// Or to the list whose key is "catchAll" if it is a CatchAll case
+            let foldCase (m : Map<string, List<MatchCase>>) (case : MatchCase) : Map<string, List<MatchCase>> =
+                let constructorName = case.ConstructorName
+                if m.ContainsKey constructorName then
+                    m.Add(constructorName, case :: m[constructorName])
+                else
+                    m.Add(constructorName, [case])
+
+            let caseMap = List.fold foldCase Map.empty cases
+
+            // defaultTys - The types of the 'default' case bodies
+            // code - Code that pattern matches and evaluates guards, and then jumps to the appropriate body and evaluates it
+            // defualtAddr - The address of *defaultCode*
+            let! (defaultTyCases : List<Ty * MatchCase>, defaultCode : List<Instruction>, defaultAddr : int) =
+                match caseMap.TryFind "catchAll" with
+                | Some(cases) ->
+                    let foldCases ((tys, prevBodyCode, prevGuardCode) : List<Ty * MatchCase> * List<Instruction> * List<Instruction>)
+                                  (m : MatchCase) : Gen<List<Ty * MatchCase> * List<Instruction> * List<Instruction>> =
+                        match m with
+                        | CatchAllCase(varName, None, body, _) ->
+                            gen {
+                                let ctxt' = {
+                                    ctxt with
+                                        varCtxt = ctxt.varCtxt.Add(varName, { ty = scrutTy ; address = Local(stackLevel) })
+                                }
+                                let! bodyTy, bodyCode = codeV ctxt' body stackLevel
+                                return (
+                                    (bodyTy, m) :: tys,
+                                    prevBodyCode,
+                                    List.concat [
+                                        prevGuardCode
+                                        bodyCode
+                                        [Slide 1]
+                                        [Jump afterAddr]
+                                    ]
+                                )
+                            }
+                        | CatchAllCase(varName, Some(whenCond), body, _) ->
+                            gen {
+                                let ctxt' = {
+                                    ctxt with
+                                        varCtxt = ctxt.varCtxt.Add(varName, { ty = scrutTy ; address = Local(stackLevel) })
+                                }
+                                let! guardTy, guardCode = codeV ctxt' whenCond stackLevel
+                                do!
+                                    if not (Ty.IsEqual guardTy (IntTy(noRange))) then
+                                        error $"Expeceted type 'int' as guard expression type, but found '{guardTy}'" whenCond.Range
+                                    else
+                                        pass
+                                let! bodyTy, bodyCode = codeV ctxt' body stackLevel
+                                let! bodyAddr = getFreshSymbolicAddr
+                                return (
+                                    (bodyTy, m) :: tys,
+                                    List.concat [
+                                        prevBodyCode
+                                        [SymbolicAddress bodyAddr]
+                                        bodyCode
+                                        [Slide 1]
+                                        [Jump afterAddr]
+                                    ],
+                                    List.concat [
+                                        prevGuardCode
+                                        guardCode
+                                        [JumpNZ bodyAddr]
+                                    ]
+                                )
+                            }
+                        | _ ->
+                            failwith "impossible"
                     gen {
-                        let! bodyTy, bodyCode = codeV ctxt body stackLevel
-                        let! addr = getFreshSymbolicAddr
+                        let! defaultCasesAddr = getFreshSymbolicAddr
+                        let! (tys, bodyCode, guardCode) = foldM ([], [], []) foldCases (List.rev cases)
                         return (
-                            bodyTy,
-                            List.concat [
-                                [SymbolicAddress addr]
-                                bodyCode
-                            ],
-                            addr
+                            tys,
+                            List.concat [[SymbolicAddress defaultCasesAddr] ; guardCode ; [Halt] ; bodyCode],
+                            defaultCasesAddr
+                        )
+                    }
+                | None ->
+                    gen {
+                        let! defaultCasesAddr = getFreshSymbolicAddr
+                        return (
+                            [],
+                            [SymbolicAddress defaultCasesAddr ; Slide 1 ; Halt],
+                            defaultCasesAddr
                         )
                     }
 
-            let! caseResults = letAll (List.map genCase cases)
-            let (caseTys, caseCodes, caseAddrs) = List.unzip3 caseResults
+            let caseMap = Map.remove "catchAll" caseMap
 
-            let ty0 = caseTys[0]
+            /// Returns (ty, guardCode, bodyCode), where *ty* is the list of type of the body,
+            /// *guardCode* is a sequence of instructions that performs pattern matching and guard evaluation and jumps to the corresponding
+            /// body if it succeeds.
+            /// *bodyCode* is a labelled sequence of instructions that evaluates the case's body and
+            /// pushes its value onto the stack, then jumps to after the match
+            let genCase (case : MatchCase) : Gen<Ty * List<Instruction> * List<Instruction>> =
+                match case with
+                | ConstructorCase(constructorName, argVar, Some(whenCond), body, caseRng) ->
+                    gen {
+                        let! argTy =
+                            match scrutTyVariants.TryFind constructorName with
+                            | Some(ty) ->
+                                gen {
+                                    return ty
+                                }
+                            | None ->
+                                error $"The type '{scrutTy.ToString()}' does not have a variant called '{constructorName}'" caseRng
+                        let ctxt' = {
+                            ctxt with
+                                varCtxt = ctxt.varCtxt.Add(argVar, { ty = argTy ; address = Local(stackLevel + 1) })
+                        }
+                        let! guardTy, guardCode = codeV ctxt' whenCond (stackLevel + 1)
+                        do!
+                            if not (Ty.IsEqual guardTy (IntTy(noRange))) then
+                                error $"Expeceted type 'int' as guard latimesexpression type, but found '{guardTy}'" whenCond.Range
+                            else
+                                pass
+                        let! bodyTy, bodyCode = codeV ctxt' body (stackLevel + 1)
+                        let! bodyAddr = getFreshSymbolicAddr
+                        return (
+                            bodyTy,
+                            List.concat [
+                                [TGetConstructorArg]
+                                guardCode
+                                [JumpNZ bodyAddr]
+                                [Pop]
+                            ],
+                            List.concat [
+                                [SymbolicAddress bodyAddr]
+                                bodyCode
+                                [Slide 2]
+                                [Jump afterAddr]
+                            ]
+                        )
+                    }
+                | ConstructorCase(constructorName, argVar, None, body, caseRng) ->
+                    gen {
+                        let! argTy =
+                            match scrutTyVariants.TryFind constructorName with
+                            | Some(ty) ->
+                                gen {
+                                    return ty
+                                }
+                            | None ->
+                                error $"The type '{scrutTy.ToString()}' does not have a variant called '{constructorName}'" caseRng
+                        let ctxt' = {
+                            ctxt with
+                                varCtxt = ctxt.varCtxt.Add(argVar, { ty = argTy ; address = Local(stackLevel + 1) })
+                        }
+                        let! bodyTy, bodyCode = codeV ctxt' body (stackLevel + 1)
+                        return (
+                            bodyTy,
+                            List.concat [
+                                [TGetConstructorArg]
+                                bodyCode
+                                [Slide 2]
+                                [Jump afterAddr]
+                            ],
+                            []
+                        )
+                    }
+                | _ ->
+                    failwith "impossible"
 
+            /// Returns (tyCases, code, addr) for all guard and body code for all cases of a specific variant constructor
+            ///
+            /// * *tyCases* is a list of the type/matchCase pairs of all bodies for this constructor
+            ///
+            /// * *code* contains the "guard" code used to match cases and dispatch to their bodies,
+            /// followed by labelled body blocks for each case body
+            ///
+            /// * *nameAddr* is a pair (name, addr) of the constructor name and the address of *code*
+            let mapCaseMapEntry ((constructorName, cases) : string * List<MatchCase>)
+                : Gen<List<Ty * MatchCase> * List<Instruction> * (string * int)> =
+
+                gen {
+                    let! constructorCasesAddr = getFreshSymbolicAddr
+                    let! mappedCases = letAll (List.map genCase (List.rev cases))
+                    let (caseTys, caseGuardCodes, caseBodyCodes) = List.unzip3 mappedCases
+                    return (
+                        List.zip caseTys cases,
+                        List.concat [
+                            [SymbolicAddress constructorCasesAddr]
+                            List.concat caseGuardCodes
+                            [Jump defaultAddr]
+                            List.concat caseBodyCodes
+                        ],
+                        (constructorName, constructorCasesAddr)
+                    )
+                }
+
+            let! caseResults = letAll <| List.map mapCaseMapEntry (Map.toList caseMap)
+            let (constructorCaseTys, constructorCodes, constructorAddrs) = List.unzip3 caseResults
+            let allTyCases = List.append defaultTyCases (List.concat constructorCaseTys)
+
+            let (ty0, _) = allTyCases[0]
             let checkTy ((ty, case) : Ty * MatchCase) : Gen<unit> =
                 if Ty.IsEqual ty ty0 then
                     pass
@@ -338,15 +531,31 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                         $"Expected case to have type '{ty0.ToString()}' but instead found '{ty.ToString()}'"
                         case.Range
 
-            do! doAll (List.map checkTy (List.zip caseTys cases))
+            do! doAll (List.map checkTy allTyCases)
+
+            let constructorAddrMap = Map.ofList constructorAddrs
+            let constructorNameToJump (name : string) : Instruction =
+                match constructorAddrMap.TryFind name with
+                | Some(addr) ->
+                    Jump addr
+                | None ->
+                    Jump defaultAddr
 
             let! jumpTableAddr = getFreshSymbolicAddr
-            let jumpTable = List.concat [
-                [SymbolicAddress jumpTableAddr]
-                List.map (fun addr -> Jump addr) caseAddrs
-            ]
+            let jumpTable = List.map (fun (name, _) -> constructorNameToJump name) (Map.toList scrutTyVariants)
 
-            failwith "blerg"
+            return (
+                ty0,
+                List.concat [
+                    scrutCode
+                    [TSum jumpTableAddr]
+                    [SymbolicAddress jumpTableAddr]
+                    jumpTable
+                    defaultCode
+                    List.concat constructorCodes
+                    [SymbolicAddress afterAddr]
+                ]
+            )
         }
     | Var(name, rng) ->
         gen {

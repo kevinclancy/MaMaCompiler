@@ -30,10 +30,14 @@ let resolve (instructions : List<Instruction>) : Instruction [] =
                 Jump addrMap[addr]
             | JumpZ addr ->
                 JumpZ addrMap[addr]
+            | JumpNZ addr ->
+                JumpNZ addrMap[addr]
             | JumpI addr ->
                 JumpI addrMap[addr]
             | LoadCAddr addr ->
                 LoadC addrMap[addr]
+            | TSum addr ->
+                TSum addrMap[addr]
             | _ ->
                 result[i]
 

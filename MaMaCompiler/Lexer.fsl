@@ -64,6 +64,7 @@ rule token = parse
 | "then"         { THEN }
 | "else"         { ELSE }
 | "while"        { WHILE }
+| "when"         { WHEN }
 | "of"           { OF }
 | "for"          { FOR }
 | "switch"       { SWITCH }

@@ -25,6 +25,8 @@ type Instruction =
     /// and jumps to (addr + n), where n is the variant index of the sum value
     /// (the instruction at addr + n is supposed to jump somewhere else, i.e. it's part of a "jump table")
     | TSum of addr:int
+    /// Assuming a sum value (Constructor v) on the top of the stack, pushes the constructor argument *v* onto the stack.
+    | TGetConstructorArg
     /// Remove the top value on the stack
     | Pop
     /// Replace a reference to a "reference" item on top of the stack
@@ -124,5 +126,7 @@ type Instruction =
     | Jump of destAddr : int
     // jump to destAddr if top of stack is 0, pop top of stack
     | JumpZ of destAddr : int
+    // jump to destAddr if top of stack is non-0, pop top of stack
+    | JumpNZ of destAddr : int
     // pop an index off the top of the stack. then jump to (baseAddr + index).
     | JumpI of baseAddr : int
