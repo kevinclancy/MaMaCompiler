@@ -322,10 +322,6 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                 | _ ->
                     error $"Match scrutinee expected to have sum type, but found '{scrutTy}'" scrutinee.Range
 
-            // *cases* produces a map from constructor names to bodyTy, code, addr records
-            // also produce a default case named "default" -- it raises an exception if default case isn't provided
-            // otherwise, it implements the body of the default case
-
             /// Add *case* to the list whose key is its constructorName
             /// Or to the list whose key is "catchAll" if it is a CatchAll case
             let foldCase (m : Map<string, List<MatchCase>>) (case : MatchCase) : Map<string, List<MatchCase>> =
@@ -350,9 +346,9 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                             gen {
                                 let ctxt' = {
                                     ctxt with
-                                        varCtxt = ctxt.varCtxt.Add(varName, { ty = scrutTy ; address = Local(stackLevel) })
+                                        varCtxt = ctxt.varCtxt.Add(varName, { ty = scrutTy ; address = Local(stackLevel + 1) })
                                 }
-                                let! bodyTy, bodyCode = codeV ctxt' body stackLevel
+                                let! bodyTy, bodyCode = codeV ctxt' body (stackLevel + 1)
                                 return (
                                     (bodyTy, m) :: tys,
                                     prevBodyCode,
@@ -368,9 +364,9 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                             gen {
                                 let ctxt' = {
                                     ctxt with
-                                        varCtxt = ctxt.varCtxt.Add(varName, { ty = scrutTy ; address = Local(stackLevel) })
+                                        varCtxt = ctxt.varCtxt.Add(varName, { ty = scrutTy ; address = Local(stackLevel + 1) })
                                 }
-                                let! guardTy, guardCode = codeV ctxt' whenCond stackLevel
+                                let! guardTy, guardCode = codeV ctxt' whenCond (stackLevel + 1)
                                 do!
                                     if not (Ty.IsEqual guardTy (IntTy(noRange))) then
                                         error $"Expeceted type 'int' as guard expression type, but found '{guardTy}'" whenCond.Range
@@ -564,7 +560,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         }
     | Let(varName, boundExpr, bodyExpr, rng) ->
         gen {
-            let! tyBound, codeBound = codeC ctxt boundExpr stackLevel
+            let! tyBound, codeBound = codeV ctxt boundExpr stackLevel
             let varEntry = { address = Local(stackLevel + 1); ty = tyBound }
             let ctxt' = { ctxt with varCtxt = ctxt.varCtxt.Add(varName, varEntry) }
             let! tyBody, codeBody = codeV ctxt' bodyExpr (stackLevel + 1)
@@ -602,7 +598,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                 { ctxt with varCtxt = ctxt.varCtxt.Add(name, { ty = ty ; address = Local(stackLevel + i)})}
             let ctxt' = List.fold2 addVarToContext ctxt bindings [1 .. n]
             let! bindingClosures =
-                letAll <| List.map (fun (_,_,e) -> codeC ctxt' e (stackLevel + n)) bindings
+                letAll <| List.map (fun (_,_,e) -> codeV ctxt' e (stackLevel + n)) bindings
             let boundExprTys,pushClosureBlocks = List.unzip bindingClosures
             let rewriteClosureBlocks =
                 List.map2
@@ -665,9 +661,9 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                     [MkFunVal callStartAddr]
                     [Jump afterAddr]
                     [SymbolicAddress callStartAddr]
-                    [TArg <| formals.Length]
+                    [TArg formals.Length]
                     bodyCode
-                    [Return <| formals.Length]
+                    [Return formals.Length]
                     [SymbolicAddress afterAddr]
                 ]
             )
@@ -675,7 +671,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
     | Application(fnExpr, args, _) ->
         gen {
             let! tyFun, codeFun = codeV ctxt fnExpr (stackLevel + args.Length + 3)
-            let! tyCodeArgs = letAll <| List.mapi (fun i e -> codeC ctxt e (stackLevel + (args.Length - 1 - i) + 3)) args
+            let! tyCodeArgs = letAll <| List.mapi (fun i e -> codeV ctxt e (stackLevel + (args.Length - 1 - i) + 3)) args
             let formalTys = tyFun.DomTyList
             do!
                 if formalTys.Length < tyCodeArgs.Length then
@@ -726,7 +722,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         }
     | Tuple(elems, rng) ->
         gen {
-            let! elemTyCodes = letAll <| List.mapi (fun i e -> codeC ctxt e (stackLevel + i)) elems
+            let! elemTyCodes = letAll <| List.mapi (fun i e -> codeV ctxt e (stackLevel + i)) elems
             let elemTys, elemCodes = List.unzip elemTyCodes
             return (
                 ProdTy(elemTys, noRange),

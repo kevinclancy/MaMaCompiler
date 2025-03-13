@@ -82,7 +82,7 @@ rule token = parse
 | "typedef"      { TYPEDEF }
 | ("//")         { lastComment <- "" ; comment lexbuf }
 | ['A'-'Z']['a'-'z''A'-'Z''1'-'9']* { CONSTRUCTOR(lexeme lexbuf) }
-| ['a'-'z']['a'-'z''A'-'Z''1'-'9']* { ID(lexeme lexbuf) }
+| ['a'-'z''_']['a'-'z''A'-'Z''1'-'9''_']* { ID(lexeme lexbuf) }
 | ['-']?digit+                             { INT (Int32.Parse(lexeme lexbuf)) }
 | eof            { EOF }
 

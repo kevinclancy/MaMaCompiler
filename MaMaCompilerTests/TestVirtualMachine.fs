@@ -453,7 +453,7 @@ type Fixture () =
         | IntTy(_) ->
             ()
         | _ ->
-            failwith "expected output of type 'bool'"
+            failwith "expected output of type 'int'"
         let code' = resolve <| List.concat [code ; [Halt]]
         let result = execute code'
 
@@ -487,7 +487,7 @@ type Fixture () =
         | IntTy(_) ->
             ()
         | _ ->
-            failwith "expected output of type 'bool'"
+            failwith "expected output of type 'int'"
         let code' = resolve <| List.concat [code ; [Halt]]
         let result = execute code'
 
@@ -523,7 +523,7 @@ type Fixture () =
         | IntTy(_) ->
             ()
         | _ ->
-            failwith "expected output of type 'bool'"
+            failwith "expected output of type 'int'"
         let code' = resolve <| List.concat [code ; [Halt]]
         let result = execute code'
 
@@ -559,7 +559,7 @@ type Fixture () =
         | IntTy(_) ->
             ()
         | _ ->
-            failwith "expected output of type 'bool'"
+            failwith "expected output of type 'int'"
         let code' = resolve <| List.concat [code ; [Halt]]
         let result = execute code'
 
@@ -595,7 +595,7 @@ type Fixture () =
         | IntTy(_) ->
             ()
         | _ ->
-            failwith "expected output of type 'bool'"
+            failwith "expected output of type 'int'"
         let code' = resolve <| List.concat [code ; [Halt]]
         let result = execute code'
 
@@ -631,7 +631,7 @@ type Fixture () =
         | IntTy(_) ->
             ()
         | _ ->
-            failwith "expected output of type 'bool'"
+            failwith "expected output of type 'int'"
         let code' = resolve <| List.concat [code ; [Halt]]
         let result = execute code'
 
@@ -665,8 +665,130 @@ type Fixture () =
         | IntTy(_) ->
             ()
         | _ ->
-            failwith "expected output of type 'bool'"
+            failwith "expected output of type 'int'"
         let code' = resolve <| List.concat [code ; [Halt]]
         let result = execute code'
 
         Assert.That( (result = Basic(7)) )
+
+    [<Test>]
+    member this.cbvApplication () =
+        let { typedefs = typedefs ; expr = e } = parseProg """
+        let z = ref 3 in
+        let a = (fun (x : int) (y : int) -> !z) in
+        (a (z := !z + 1; 1) (z := !z + 1; 1))
+        """
+        let ctxt =
+            match run (Context.Empty.WithTypedefs typedefs) with
+            | Result(ctxt', _) ->
+                ctxt'
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        let ty, code =
+            match run (codeV ctxt e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(5)) )
+
+    [<Test>]
+    member this.cbvConstructor () =
+        let { typedefs = typedefs ; expr = e } = parseProg """
+        typedef bool =
+          | A of int
+          | B of int
+        let z = ref 0 in
+        match (A (z := !z + 1; 2)) with
+        | _ when !z == 1 ->
+            2
+        | _ ->
+            7
+        """
+        let ctxt =
+            match run (Context.Empty.WithTypedefs typedefs) with
+            | Result(ctxt', _) ->
+                ctxt'
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        let ty, code =
+            match run (codeV ctxt e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(2)) )
+
+    [<Test>]
+    member this.cbvTuples () =
+        let { typedefs = typedefs ; expr = e } = parseProg """
+        let z = ref 0 in
+        let a = (z := !z + 1; !z , 3) in
+        !z
+        """
+        let ctxt =
+            match run (Context.Empty.WithTypedefs typedefs) with
+            | Result(ctxt', _) ->
+                ctxt'
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        let ty, code =
+            match run (codeV ctxt e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(1)) )
+
+    [<Test>]
+    member this.cbvLet () =
+        let { typedefs = typedefs ; expr = e } = parseProg """
+        let z = ref 3 in
+        let w = (z := !z + 1) in
+        !z
+        """
+        let ctxt =
+            match run (Context.Empty.WithTypedefs typedefs) with
+            | Result(ctxt', _) ->
+                ctxt'
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        let ty, code =
+            match run (codeV ctxt e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(4)) )
