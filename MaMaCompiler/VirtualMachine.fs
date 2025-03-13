@@ -286,7 +286,6 @@ let execute (code : Instruction []) : HeapObject =
         | Eq ->
             S[SP - 1] <- if S[SP - 1] = S[SP] then 1 else 0
             let a = S[SP-1]
-            printf "%d" a;
             SP <- SP - 1
             PC <- PC + 1
             true
