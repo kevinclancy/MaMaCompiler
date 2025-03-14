@@ -437,7 +437,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                         let! guardTy, guardCode = codeV ctxt' whenCond (stackLevel + 1)
                         do!
                             if not (Ty.IsEqual guardTy (IntTy(noRange))) then
-                                error $"Expeceted type 'int' as guard latimesexpression type, but found '{guardTy}'" whenCond.Range
+                                error $"Expeceted type 'int' as guard expression type, but found '{guardTy}'" whenCond.Range
                             else
                                 pass
                         let! bodyTy, bodyCode = codeV ctxt' body (stackLevel + 1)

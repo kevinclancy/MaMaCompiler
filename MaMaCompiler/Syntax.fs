@@ -26,6 +26,22 @@ and Ty =
             | SumTy(_, rng) ->
                 rng
 
+        override this.ToString() : string =
+            match this with
+            | IntTy(_) ->
+                "int"
+            | FunTy(dom, cod, _) ->
+                $"{dom} -> {cod}"
+            | ProdTy(components, _) ->
+                "(" + String.concat "," (List.map (fun c-> c.ToString()) components) + ")"
+            | RefTy(containedTy, _) ->
+                $"Ref {containedTy}"
+            | SumTy(variants, _) ->
+                "sumTy"
+            | IdTy(name, _) ->
+                name
+
+
         member this.Apply (n : int) : Ty =
             match (n, this) with
             | (0, _) ->

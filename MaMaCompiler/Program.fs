@@ -8,6 +8,10 @@ open GenCode
 open AddressResolution
 open VirtualMachine
 open TargetCode
+open Utils
+
+let range_string ((start, fin) : Range) =
+  $"line {start.Line + 1} column {start.Column + 1}"
 
 [<EntryPoint>]
 let main (args : string array) : int =
@@ -36,13 +40,15 @@ let main (args : string array) : int =
       | Result(ctxt', _) ->
           ctxt'
       | Error(msg, rng) ->
-          failwith $"code generation failed: {msg} at {rng}"
+          printf $"code generation failed: {msg} at {range_string rng}"
+          exit 1
   let ty, code =
       match run (codeV ctxt e 0) with
       | Result(code, _) ->
           code
       | Error(msg, rng) ->
-          failwith $"code generation failed: {msg} at {rng}"
+          printf $"code generation failed: {msg} at {range_string rng}"
+          exit 1
   let code' = resolve <| List.concat [code ; [Halt]]
   let result = execute code'
   printfn "Result Computed: %s" (result.ToString())
