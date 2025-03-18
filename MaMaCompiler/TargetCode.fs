@@ -21,7 +21,7 @@ type Instruction =
     /// MkSum(n) Pops value v from top of stack. Pushes a value of a sum datatype onto the stack with variant index n
     /// and argument v
     | MkSum of n:int
-    /// TSum(addr) Pops an address of a sum datatype off the stack, pushes the variant constructor argument onto the stack,
+    /// TSum(addr) Pops an address of a sum value off the stack, pushes the variant constructor argument onto the stack,
     /// and jumps to (addr + n), where n is the variant index of the sum value
     /// (the instruction at addr + n is supposed to jump somewhere else, i.e. it's part of a "jump table")
     | TSum of addr:int
@@ -29,13 +29,13 @@ type Instruction =
     | TGetConstructorArg
     /// Remove the top value on the stack
     | Pop
-    /// Replace a reference to a "reference" item on top of the stack
-    /// with a reference to whatever the "reference" item refers to
+    /// Replace the address of a "reference" item on top of the stack
+    /// with the address of whatever the "reference" item refers to
     | GetRef
-    /// Pop a reference to a heap object `h` off of the stack.
-    /// Then, create a new R-object referring to `h`, pushing a reference to this R-object onto the stack.
+    /// Pop an address of a heap object `h` off of the stack.
+    /// Then, create a new R-object referring to `h`, pushing its address onto the stack.
     | MkRef
-    /// Assume a reference to an R-object is on top of the stack and a reference to another
+    /// Assume a heap address of an R-object is on top of the stack and an address of another
     /// heap object `h` directly below it.
     ///
     /// This instruction reassigns the R-object's reference to refer to `h`, pops both off the stack,
@@ -114,14 +114,10 @@ type Instruction =
     /// to the context that triggered closure evaluation. It then mutates the closure to the value the closure produced,
     /// without changing its address.
     | Update
-    /// Pops the address n off the stack and pushes the words stored at n,n+1,...,n+(numWords-1)
+    /// Pops the address n off the stack and pushes the words (integers and addresses) stored at n,n+1,...,n+(numWords-1)
     | Load of numWords : int
     /// pushes constantToLoad onto the stack
     | LoadC of constantToLoad : int
-    /// pushes (*FP + offset) onto the stack
-    | LoadRC of offset : int
-    /// "loadrc offset" followed by "load numWords"
-    | LoadR of offset : int * numWords : int
     // jump to destAddr
     | Jump of destAddr : int
     // jump to destAddr if top of stack is 0, pop top of stack
@@ -130,3 +126,136 @@ type Instruction =
     | JumpNZ of destAddr : int
     // pop an index off the top of the stack. then jump to (baseAddr + index).
     | JumpI of baseAddr : int
+
+    with
+        /// The instruction's 32-bit binary representation
+        member this.Serialization : uint =
+            match this with
+            | SymbolicAddress(_)
+            | LoadCAddr(_) ->
+                failwith "can only serialize code with resolved addresses"
+            | Halt ->
+                0x00000000u
+            | Mul ->
+                0x00000001u
+            | Add ->
+                0x00000002u
+            | Sub ->
+                0x00000003u
+            | Leq ->
+                0x00000004u
+            | Eq ->
+                0x00000005u
+            | Geq ->
+                0x00000006u
+            | Gt ->
+                0x00000007u
+            | Lt ->
+                0x00000008u
+            | Neg ->
+                0x00000009u
+            | MkSum(n) ->
+                let opId = 0x0Au
+                let variantId = uint n
+                opId ||| (variantId <<< 8)
+            | TSum(jumpTableAddr) ->
+                assert (jumpTableAddr < (1 <<< 16))
+                let opId = 0x0Bu
+                let addr = uint jumpTableAddr
+                opId ||| (addr <<< 8)
+            | TGetConstructorArg ->
+                0x0000000Cu
+            | Pop ->
+                0x0000000Du
+            | GetRef ->
+                0x0000000Eu
+            | MkRef ->
+                0x0000000Fu
+            | RefAssign ->
+                0x00000010u
+            | GetBasic ->
+                0x00000011u
+            | MkBasic ->
+                0x00000012u
+            | PushLoc(n) ->
+                let opId = 0x13u
+                // NOTE: this could be 1 byte instead of 2
+                let loc = (uint n) &&& 0x00001111u
+                opId ||| (loc <<< 8)
+            | PushGlob(n) ->
+                let opId = 0x14u
+                /// NOTE: this could be 1 byte instead of 2
+                let loc = (uint n) &&& 0x00001111u
+                opId ||| (loc <<< 8)
+            | Slide(n) ->
+                let opId = 0x15u
+                /// NOTE: this could be one byte instead of 2
+                let slideDistance = (uint n) &&& 0x00001111u
+                opId ||| (slideDistance <<< 8)
+            | GetVec ->
+                0x00000016u
+            | MkVec(n) ->
+                assert (n < (1 <<< 16))
+                let opId = 0x16u
+                let vecLen = uint n
+                opId ||| (vecLen <<< 8)
+            | MkFunVal(addr) ->
+                assert (addr < (1 <<< 16))
+                let opId = 0x17u
+                opId ||| (uint addr <<< 8)
+            | MkClos(addr) ->
+                assert (addr < (1 <<< 16))
+                let opId = 0x18u
+                opId ||| (uint addr <<< 8)
+            | Mark(addr) ->
+                // NOTE: addr could be one byte since we're returning to address that is a few instructions ahead
+                assert (addr < (1 <<< 16))
+                let opId = 0x19u
+                opId ||| (uint addr <<< 8)
+            | Apply ->
+                0x1Au
+            | TArg(numFormals) ->
+                assert (numFormals < (1 <<< 8) && numFormals >= 0)
+                let opId = 0x1Bu
+                opId ||| (uint numFormals <<< 8)
+            | Return(numFormals) ->
+                assert (numFormals < (1 <<< 8) && numFormals >= 0)
+                let opId = 0x1Cu
+                opId ||| (uint numFormals <<< 8)
+            | Alloc(n) ->
+                assert (n < (1 <<< 8) && n >= 0)
+                let opId = 0x1Du
+                opId ||| (uint n <<< 8)
+            | Rewrite(n) ->
+                assert (n < (1 <<< 8) && n >= 0)
+                let opId = 0x1Eu
+                opId ||| (uint n <<< 8)
+            | Eval ->
+                0x0000001Fu
+            | Update ->
+                0x00000020u
+            | Load(numWords) ->
+                assert (numWords < (1 <<< 8) && numWords >= 0)
+                let opId = 0x21u
+                opId ||| (uint numWords <<< 8)
+            | LoadC(constantToLoad) ->
+                assert (constantToLoad < (1 <<< 20) && constantToLoad > -(1 <<< 20))
+                let opId = 0x22u
+                let maskedConstant = (uint constantToLoad) &&& 0x00111111u
+                opId ||| (maskedConstant <<< 8)
+            | Jump(destAddr) ->
+                assert (destAddr < (1 <<< 16) && destAddr >= 0)
+                let opId = 0x23u
+                opId ||| (uint destAddr <<< 8)
+            | JumpZ(destAddr) ->
+                assert (destAddr < (1 <<< 16) && destAddr >= 0)
+                let opId = 0x24u
+                opId ||| (uint destAddr <<< 8)
+             | JumpNZ(destAddr) ->
+                assert (destAddr < (1 <<< 16) && destAddr >= 0)
+                let opId = 0x25u
+                opId ||| (uint destAddr <<< 8)
+            | JumpI(baseAddr) ->
+                assert (baseAddr < (1 <<< 16) && baseAddr >= 0)
+                let opId = 0x26u
+                opId ||| (uint baseAddr <<< 8)

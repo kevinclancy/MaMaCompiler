@@ -13,13 +13,17 @@ open Utils
 let range_string ((start, fin) : Range) =
   $"line {start.Line + 1} column {start.Column + 1}"
 
+let write_code (code : Instruction array) : unit =
+  use stream = File.Create("out.bin")
+  use writer = new BinaryWriter(stream )
+  Array.iter (fun (instr : Instruction) -> writer.Write(instr.Serialization)) code
+
 [<EntryPoint>]
 let main (args : string array) : int =
   let prog =
     try
-      let reader = new StreamReader(args[0])
+      use reader = new StreamReader(args[0])
       let lexbuffer : LexBuffer<char> = LexBuffer<char>.FromString(reader.ReadToEnd())
-      let src = (new StreamReader(args[0])).ReadToEnd()
       try
         Parser.prog (Lexer.token) lexbuffer
       with
@@ -50,6 +54,7 @@ let main (args : string array) : int =
           printf $"code generation failed: {msg} at {range_string rng}"
           exit 1
   let code' = resolve <| List.concat [code ; [Halt]]
+  write_code code'
   let result = execute code'
   printfn "Result Computed: %s" (result.ToString())
   0

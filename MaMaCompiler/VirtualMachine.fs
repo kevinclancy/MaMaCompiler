@@ -335,19 +335,6 @@ let execute (code : Instruction []) : HeapObject =
             PC <- S[SP] + jumpOffset
             SP <- SP - 1
             true
-        | LoadRC(frameOffset) ->
-            SP <- SP + 1
-            S[SP] <- FP + frameOffset
-            PC <- PC + 1
-            true
-        | LoadR(loadFromFPOffset, numWordsToLoad) ->
-            SP <- SP + 1
-            let addrToLoadFrom = FP + loadFromFPOffset
-            for i in (numWordsToLoad - 1) .. -1 .. 0 do
-                S[SP + i] <- S[addrToLoadFrom + i]
-            SP <- SP + numWordsToLoad - 1
-            PC <- PC + 1
-            true
         | Mark(return_addr) ->
             mark return_addr
             PC <- PC + 1
