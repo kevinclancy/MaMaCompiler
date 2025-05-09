@@ -55,12 +55,19 @@ type Instruction =
     /// but leave the top element on the stack
     | Slide of n:int
     /// Assuming a V-object on top of the stack, pop the V-object and then
-    /// push its elements from left-to-right.
+    /// push its elements from left to right.
     | GetVec
+    /// Assuming a Tuple-object on top of the stack, pop the Tuple-object and then
+    /// push the elements contained in its referenced vector, from left to right
+    | GetTuple
     /// Pop the n top elements from the stack, where v_{n-1} is the top element, v_{n-2} is
     /// the second-to-top element, etc. Push a reference to a length-n vector
     /// whose first element is v_0, second element is v_1, etc.
     | MkVec of n:int
+    /// Pops the top of the stack, which is assumed to be a vector heap address.
+    /// Allocates a tuple referencing the popped vector address, and pushes the
+    /// tuple address onto the stack.
+    | MkTuple
     /// Make a new function whose code address is `addr`, whose argument vector is empty,
     /// and whose global vector is the vector currently on top of the stack.
     /// Pop the global vector from the stack and push a reference to the new function in its place.
@@ -180,82 +187,86 @@ type Instruction =
             | PushLoc(n) ->
                 let opId = 0x13u
                 // NOTE: this could be 1 byte instead of 2
-                let loc = (uint n) &&& 0x00001111u
+                let loc = (uint n) &&& 0x0000FFFFu
                 opId ||| (loc <<< 8)
             | PushGlob(n) ->
                 let opId = 0x14u
                 /// NOTE: this could be 1 byte instead of 2
-                let loc = (uint n) &&& 0x00001111u
+                let loc = (uint n) &&& 0x0000FFFFu
                 opId ||| (loc <<< 8)
             | Slide(n) ->
                 let opId = 0x15u
                 /// NOTE: this could be one byte instead of 2
-                let slideDistance = (uint n) &&& 0x00001111u
+                let slideDistance = (uint n) &&& 0x0000FFFFu
                 opId ||| (slideDistance <<< 8)
             | GetVec ->
                 0x00000016u
             | MkVec(n) ->
                 assert (n < (1 <<< 16))
-                let opId = 0x16u
+                let opId = 0x17u
                 let vecLen = uint n
                 opId ||| (vecLen <<< 8)
             | MkFunVal(addr) ->
                 assert (addr < (1 <<< 16))
-                let opId = 0x17u
+                let opId = 0x18u
                 opId ||| (uint addr <<< 8)
             | MkClos(addr) ->
                 assert (addr < (1 <<< 16))
-                let opId = 0x18u
+                let opId = 0x19u
                 opId ||| (uint addr <<< 8)
             | Mark(addr) ->
                 // NOTE: addr could be one byte since we're returning to address that is a few instructions ahead
                 assert (addr < (1 <<< 16))
-                let opId = 0x19u
+                let opId = 0x1Au
                 opId ||| (uint addr <<< 8)
             | Apply ->
-                0x1Au
+                0x1Bu
             | TArg(numFormals) ->
-                assert (numFormals < (1 <<< 8) && numFormals >= 0)
-                let opId = 0x1Bu
-                opId ||| (uint numFormals <<< 8)
-            | Return(numFormals) ->
                 assert (numFormals < (1 <<< 8) && numFormals >= 0)
                 let opId = 0x1Cu
                 opId ||| (uint numFormals <<< 8)
-            | Alloc(n) ->
-                assert (n < (1 <<< 8) && n >= 0)
+            | Return(numFormals) ->
+                assert (numFormals < (1 <<< 8) && numFormals >= 0)
                 let opId = 0x1Du
-                opId ||| (uint n <<< 8)
-            | Rewrite(n) ->
+                opId ||| (uint numFormals <<< 8)
+            | Alloc(n) ->
                 assert (n < (1 <<< 8) && n >= 0)
                 let opId = 0x1Eu
                 opId ||| (uint n <<< 8)
+            | Rewrite(n) ->
+                assert (n < (1 <<< 8) && n >= 0)
+                let opId = 0x1Fu
+                opId ||| (uint n <<< 8)
             | Eval ->
-                0x0000001Fu
-            | Update ->
                 0x00000020u
+            | Update ->
+                0x00000021u
             | Load(numWords) ->
                 assert (numWords < (1 <<< 8) && numWords >= 0)
-                let opId = 0x21u
+                let opId = 0x22u
                 opId ||| (uint numWords <<< 8)
             | LoadC(constantToLoad) ->
                 assert (constantToLoad < (1 <<< 20) && constantToLoad > -(1 <<< 20))
-                let opId = 0x22u
-                let maskedConstant = (uint constantToLoad) &&& 0x00111111u
+                let opId = 0x23u
+                let maskedConstant = (uint constantToLoad) &&& 0x00FFFFFFu
                 opId ||| (maskedConstant <<< 8)
             | Jump(destAddr) ->
                 assert (destAddr < (1 <<< 16) && destAddr >= 0)
-                let opId = 0x23u
+                let opId = 0x24u
                 opId ||| (uint destAddr <<< 8)
             | JumpZ(destAddr) ->
                 assert (destAddr < (1 <<< 16) && destAddr >= 0)
-                let opId = 0x24u
+                let opId = 0x25u
                 opId ||| (uint destAddr <<< 8)
              | JumpNZ(destAddr) ->
                 assert (destAddr < (1 <<< 16) && destAddr >= 0)
-                let opId = 0x25u
+                let opId = 0x26u
                 opId ||| (uint destAddr <<< 8)
             | JumpI(baseAddr) ->
                 assert (baseAddr < (1 <<< 16) && baseAddr >= 0)
-                let opId = 0x26u
+                let opId = 0x27u
                 opId ||| (uint baseAddr <<< 8)
+            | MkTuple ->
+                0x28u
+            | GetTuple ->
+                0x29u

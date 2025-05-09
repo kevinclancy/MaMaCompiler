@@ -13,6 +13,7 @@ type HeapObject =
     | Closure of code_addr:int * global_vec:int
     | Function of code_addr:int * argument_vec:int * global_vec:int
     | Vector of length:int * elems:int array
+    | Tuple of vec_addr:int
     | Ref of referTo:int
 
 let execute (code : Instruction []) : HeapObject =
@@ -28,6 +29,10 @@ let execute (code : Instruction []) : HeapObject =
     /// Returns heap address of new vector
     let new_vector (length : int) (elems : int array) : int =
         H.Add(Vector(length, elems))
+        H.Count - 1
+
+    let new_tuple (vec_addr : int) : int =
+        H.Add(Tuple(vec_addr))
         H.Count - 1
 
     let new_function (code_addr : int) (argument_vec_addr : int) (global_vec_addr : int) : int =
@@ -77,6 +82,13 @@ let execute (code : Instruction []) : HeapObject =
             (length, elems)
         | _ ->
             failwith "expected vector"
+
+    let (|ExpectTuple|) (tuple : HeapObject) : int =
+        match tuple with
+        | Tuple(vec_addr) ->
+            vec_addr
+        | _ ->
+            failwith "expected tuple"
 
     let (|ExpectBasic|) (basic : HeapObject) : int =
         match basic with
@@ -189,6 +201,14 @@ let execute (code : Instruction []) : HeapObject =
             SP <- SP + n - 1
             PC <- PC + 1
             true
+        | GetTuple ->
+            let (ExpectTuple(vec_addr)) = H[S[SP]]
+            let (ExpectVector(n, elems)) = H[vec_addr]
+            for i in 0 .. n-1 do
+                S[SP + i] <- elems[i]
+            SP <- SP + n - 1
+            PC <- PC + 1
+            true
         | MkVec(n) ->
             let array = Array.create n 0
             let vec_addr = new_vector n array
@@ -196,6 +216,12 @@ let execute (code : Instruction []) : HeapObject =
             for i in 0 .. (n - 1) do
                 array[i] <- S[SP + i]
             S[SP] <- vec_addr
+            PC <- PC + 1
+            true
+        | MkTuple ->
+            let vec_addr = S[SP]
+            let tuple_addr = new_tuple vec_addr
+            S[SP] <- tuple_addr
             PC <- PC + 1
             true
         | MkSum(n) ->

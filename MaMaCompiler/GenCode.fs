@@ -585,7 +585,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                 tyBody,
                 List.concat [
                     codeBound
-                    [GetVec]
+                    [GetTuple]
                     codeBody
                     [Slide n]
                 ]
@@ -729,6 +729,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                 List.concat [
                     List.concat elemCodes
                     [MkVec elemCodes.Length]
+                    [MkTuple]
                 ]
             )
         }
