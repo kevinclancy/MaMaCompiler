@@ -133,7 +133,8 @@ type Fixture () =
     member this.testUnderSupply () =
         let e = parseExpr """
         let a = (fun (x : int) (y : int) -> x + y) in
-        (a 3)
+        let b = (a 3) in
+        (b 2)
         """
         let ty, code =
             match run (codeV Context.Empty e 0) with
@@ -142,14 +143,14 @@ type Fixture () =
             | Error(msg, _) ->
                 failwith $"code generation failed: {msg}"
         match ty with
-        | FunTy(IntTy(_), IntTy(_), _) ->
+        | IntTy(_) ->
             ()
         | _ ->
             failwith "expected output of type 'Int'"
         let code' = resolve <| List.concat [code ; [Halt]]
         let result = execute code'
         match result with
-        | Function(_, _, _) ->
+        | Basic(5) ->
             ()
         | _ ->
             failwith "expected function"

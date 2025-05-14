@@ -114,7 +114,7 @@ let execute (code : Instruction []) : HeapObject =
         S[SP] <- H.Count - 1
 
     let wrap () : unit =
-        H.Add(Function(PC - 1, S[SP], GP))
+        H.Add(Function(PC, S[SP], GP))
         S[SP] <- H.Count - 1
 
     let popenv () : unit =
