@@ -33,7 +33,7 @@ let getVar (ctxt : Context) (varName : string) (varRng : Range) (stackLevel : in
         error $"identifier '{varName}' unknown" varRng
 
 /// For a binary operation `e1 binOp e2`, generate code to push the result's raw basic value
-/// (not heap reference) onto the stack
+/// (not heap reference) onto the basic stack
 ///
 /// ## Parameters
 ///
@@ -41,7 +41,7 @@ let getVar (ctxt : Context) (varName : string) (varRng : Range) (stackLevel : in
 /// * e1 - The left operand
 /// * e2 - The right operand
 /// * instr - The instruction that pops the top two stack elements `v1` and `v2` and
-///           pushes the result of `v1 binOp v2` onto the stack
+///           pushes the result of `v1 binOp v2` onto the basic stack
 /// * stackLevel - SP1-SP0, where SP0 is the SP value at the time the current function was initially
 ///                entered and SP1 is the SP value at the time the returned code begins executing
 ///
@@ -52,7 +52,7 @@ let getVar (ctxt : Context) (varName : string) (varRng : Range) (stackLevel : in
 let rec binOpB (ctxt : Context) (e1 : Expr) (e2 : Expr) (instr : Instruction) (stackLevel : int) : Gen<Ty * List<Instruction>> =
     gen {
         let! ty1, code1 = codeB ctxt e1 stackLevel
-        let! ty2, code2 = codeB ctxt e2 (stackLevel + 1)
+        let! ty2, code2 = codeB ctxt e2 stackLevel
         do!
             match ty1 with
             | IntTy(_) ->
@@ -79,8 +79,8 @@ let rec binOpB (ctxt : Context) (e1 : Expr) (e2 : Expr) (instr : Instruction) (s
 /// * ctxt - The context the binary operation occurs under
 /// * e1 - The left operand
 /// * e2 - The right operand
-/// * instr - The instruction that pops the top two stack elements `v1` and `v2` and
-///           pushes the result of `v1 binOp v2` onto the stack
+/// * instr - The instruction that pops the top two basic stack elements `v1` and `v2` and
+///           pushes the result of `v1 binOp v2` onto the basic stack
 /// * stackLevel - SP1-SP0, where SP0 is the SP value at the time the current function was initially
 ///                entered and SP1 is the SP value at the time the returned code begins executing
 ///

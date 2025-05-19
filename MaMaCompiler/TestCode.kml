@@ -1,6 +1,0 @@
-typedef bool =
-| A of int
-| B of int
-let x = (1,2,3) in
-let (y,z,w) = x in
-w

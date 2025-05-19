@@ -13,16 +13,15 @@ open Utils
 let range_string ((start, fin) : Range) =
   $"line {start.Line + 1} column {start.Column + 1}"
 
-let write_code (code : Instruction array) : unit =
-  use stream = File.Create("out.bin")
+let write_code (code : Instruction array) (out_filename : string) : unit =
+  use stream = File.Create(out_filename)
   use writer = new BinaryWriter(stream )
   Array.iter (fun (instr : Instruction) -> writer.Write(instr.Serialization)) code
 
-[<EntryPoint>]
-let main (args : string array) : int =
+let compile_and_run (source_filename : string) =
   let prog =
     try
-      use reader = new StreamReader(args[0])
+      use reader = new StreamReader(source_filename)
       let lexbuffer : LexBuffer<char> = LexBuffer<char>.FromString(reader.ReadToEnd())
       try
         Parser.prog (Lexer.token) lexbuffer
@@ -54,7 +53,18 @@ let main (args : string array) : int =
           printf $"code generation failed: {msg} at {range_string rng}"
           exit 1
   let code' = resolve <| List.concat [code ; [Halt]]
-  write_code code'
+  let out_filename = source_filename.Substring(0, source_filename.Length - 4) + ".bin"
+  write_code code' out_filename
   let result = execute code'
   printfn "Result Computed: %s" (result.ToString())
+  printfn "Output File: %s" out_filename
+
+[<EntryPoint>]
+let main (args : string array) : int =
+  if args[0] = "all" then
+    for file in Directory.EnumerateFiles("./test_progs") do
+      if file.EndsWith(".kml") then
+        compile_and_run file
+  else
+    compile_and_run args[0]
   0

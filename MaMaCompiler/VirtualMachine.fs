@@ -19,9 +19,11 @@ type HeapObject =
 let execute (code : Instruction []) : HeapObject =
     let mutable PC = 0
     let mutable SP = 0
+    let mutable BSP = 0
     let mutable GP = 0
     let mutable FP = 1
     let S = Array.create maxStackMem 0
+    let BS = Array.create maxStackMem 0
     let H = new ResizeArray<HeapObject>()
     // add empty global vector
     H.Add(Vector(0, Array.create 0 0))
@@ -256,12 +258,16 @@ let execute (code : Instruction []) : HeapObject =
             PC <- PC + 1
             true
         | MkBasic ->
-            S[SP] <- new_basic S[SP]
+            S[SP + 1] <- new_basic BS[BSP]
+            SP <- SP + 1
+            BSP <- BSP - 1
             PC <- PC + 1
             true
         | GetBasic ->
             let (ExpectBasic n) = H[S[SP]]
-            S[SP] <- n
+            BS[BSP + 1] <- n
+            BSP <- BSP + 1
+            SP <- SP - 1
             PC <- PC + 1
             true
         | TSum(jumpTableAddr) ->
@@ -290,53 +296,53 @@ let execute (code : Instruction []) : HeapObject =
         | Halt ->
             false
         | Mul ->
-            S[SP - 1] <- S[SP - 1] * S[SP]
-            SP <- SP - 1
+            BS[BSP - 1] <- BS[BSP - 1] * BS[BSP]
+            BSP <- BSP - 1
             PC <- PC + 1
             true
         | Add ->
-            S[SP - 1] <- S[SP - 1] + S[SP]
-            SP <- SP - 1
+            BS[BSP - 1] <- BS[BSP - 1] + BS[BSP]
+            BSP <- BSP - 1
             PC <- PC + 1
             true
         | Sub ->
-            S[SP - 1] <- S[SP - 1] - S[SP]
-            SP <- SP - 1
+            BS[BSP - 1] <- BS[BSP - 1] - BS[BSP]
+            BSP <- BSP - 1
             PC <- PC + 1
             true
         | Leq ->
-            S[SP - 1] <- if S[SP - 1] <= S[SP] then 1 else 0
-            SP <- SP - 1
+            BS[BSP - 1] <- if BS[BSP - 1] <= BS[BSP] then 1 else 0
+            BSP <- BSP - 1
             PC <- PC + 1
             true
         | Eq ->
-            S[SP - 1] <- if S[SP - 1] = S[SP] then 1 else 0
-            let a = S[SP-1]
-            SP <- SP - 1
+            BS[BSP - 1] <- if BS[BSP - 1] = BS[BSP] then 1 else 0
+            let a = BS[BSP-1]
+            BSP <- BSP - 1
             PC <- PC + 1
             true
         | Geq ->
-            S[SP - 1] <- if S[SP - 1] >= S[SP] then 1 else 0
-            SP <- SP - 1
+            BS[BSP - 1] <- if BS[BSP - 1] >= BS[BSP] then 1 else 0
+            BSP <- BSP - 1
             PC <- PC + 1
             true
         | Gt ->
-            S[SP - 1] <- if S[SP - 1] > S[SP] then 1 else 0
-            SP <- SP - 1
+            BS[BSP - 1] <- if BS[BSP - 1] > BS[BSP] then 1 else 0
+            BSP <- BSP - 1
             PC <- PC + 1
             true
         | Lt ->
-            S[SP - 1] <- if S[SP - 1] < S[SP] then 1 else 0
-            SP <- SP - 1
+            BS[BSP - 1] <- if BS[BSP - 1] < BS[BSP] then 1 else 0
+            BSP <- BSP - 1
             PC <- PC + 1
             true
         | Neg ->
-            S[SP] <- -S[SP]
+            BS[BSP] <- -BS[BSP]
             PC <- PC + 1
             true
         | LoadC(constantToLoad) ->
-            SP <- SP + 1
-            S[SP] <- constantToLoad
+            BSP <- BSP + 1
+            BS[BSP] <- constantToLoad
             PC <- PC + 1
             true
         | Load(numWordsToLoad) ->
@@ -349,8 +355,8 @@ let execute (code : Instruction []) : HeapObject =
             PC <- dest
             true
         | JumpZ(dest) ->
-            PC <- if S[SP] = 0 then dest else (PC + 1)
-            SP <- SP - 1
+            PC <- if BS[BSP] = 0 then dest else (PC + 1)
+            BSP <- BSP - 1
             true
         | JumpNZ(dest) ->
             let (ExpectBasic n) = H[S[SP]]
