@@ -146,9 +146,18 @@ let execute (code : Instruction []) : HeapObject =
         PC <- code_addr
         SP <- SP - 1
 
-    let slide (n : int) : unit =
-        S[SP - n] <- S[SP]
-        SP <- SP - n
+    let slide (slideDistance : int) (numWordsToSlide : int) : unit =
+        match slideDistance with
+        | 0 ->
+            ()
+        | _ ->
+            if numWordsToSlide = 0 then
+                SP <- SP - slideDistance
+            else
+                SP <- SP - slideDistance - numWordsToSlide
+                for _ in 0 .. (numWordsToSlide - 1) do
+                    SP <- SP + 1
+                    S[SP] <- S[SP + slideDistance]
 
     let rewrite (n : int) : unit =
         H[S[SP - n]] <- H[S[SP]]
@@ -369,8 +378,8 @@ let execute (code : Instruction []) : HeapObject =
             SP <- SP - 1
             PC <- PC + 1
             true
-        | Slide(n) ->
-            slide n
+        | Slide(slideDistance, numWordsToSlide) ->
+            slide slideDistance numWordsToSlide
             PC <- PC + 1
             true
         | Alloc(n) ->
@@ -384,7 +393,7 @@ let execute (code : Instruction []) : HeapObject =
                 popenv ()
                 true
             else
-                slide n
+                slide n 1
                 apply ()
                 true
         | LoadCAddr(addr) ->
