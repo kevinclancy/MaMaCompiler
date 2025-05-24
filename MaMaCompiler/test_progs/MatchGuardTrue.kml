@@ -1,0 +1,10 @@
+typedef bool =
+  | A of int
+  | B of int
+match (A 3) with
+| A x when x > 1 ->
+    1
+| A x ->
+    7
+| B x ->
+    2

@@ -793,3 +793,33 @@ type Fixture () =
         let result = execute code'
 
         Assert.That( (result = Basic(4)) )
+
+    [<Test>]
+    member this.tailCall () =
+        let { typedefs = typedefs ; expr = e } = parseProg """
+        let rec foo : (int -> int) =
+            (fun (z : int) -> if z == 900000 then 1 else (foo (z + 1)))
+        in
+        (foo 0)
+        """
+        let ctxt =
+            match run (Context.Empty.WithTypedefs typedefs) with
+            | Result(ctxt', _) ->
+                ctxt'
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        let ty, code =
+            match run (codeV ctxt e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(1)) )

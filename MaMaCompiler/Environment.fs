@@ -27,6 +27,9 @@ type Context = {
     constructorCtxt : Map<string, Constructor>
     varCtxt : Map<string, VarContextEntry>
     tyCtxt : Map<string, Ty>
+    /// When we're currently in the tail position of a function definition,
+    /// this contains the number of parameters of the function, used for implementing tail calls
+    tailPos : Option<int>
 }
     with
         static member Empty =
@@ -34,6 +37,7 @@ type Context = {
                 varCtxt = Map.empty
                 constructorCtxt = Map.empty
                 tyCtxt = Map.empty
+                tailPos = None
             }
 
         /// Add typedefs to context, or produce an error if any typedef is not well-formed

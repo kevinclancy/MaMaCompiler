@@ -51,8 +51,8 @@ let getVar (ctxt : Context) (varName : string) (varRng : Range) (stackLevel : in
 /// * Code that pushes the value of `e1 binOp e2`
 let rec binOpB (ctxt : Context) (e1 : Expr) (e2 : Expr) (instr : Instruction) (stackLevel : int) : Gen<Ty * List<Instruction>> =
     gen {
-        let! ty1, code1 = codeB ctxt e1 stackLevel
-        let! ty2, code2 = codeB ctxt e2 stackLevel
+        let! ty1, code1 = codeB { ctxt with tailPos = None } e1 stackLevel
+        let! ty2, code2 = codeB { ctxt with tailPos = None } e2 stackLevel
         do!
             match ty1 with
             | IntTy(_) ->
@@ -137,7 +137,7 @@ and codeC (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         let foldFreeVar (ctxt : Context) ((v, (ty, _)) : string * (Ty * Instruction)) (i : int) : Context =
             { ctxt with varCtxt = ctxt.varCtxt.Add(v, { ty = ty ; address = Global(i) }) }
         let ctxt' = List.fold2 foldFreeVar ctxt (List.zip freeVarList globalVars) [0 .. freeVarList.Length-1]
-        let! tyExpr, codeExpr = codeV ctxt' expr 0
+        let! tyExpr, codeExpr = codeV { ctxt' with tailPos = None } expr 0
         let! executeClosureAddr = getFreshSymbolicAddr
         let! afterAddr = getFreshSymbolicAddr
         return (
@@ -193,7 +193,7 @@ and codeB (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         binOpB ctxt e1 e2 Gt stackLevel
     | Expr.IfThenElse(cond, thenExpr, elseExpr, rng) ->
         gen {
-            let! tyCond, codeCond = codeB ctxt cond stackLevel
+            let! tyCond, codeCond = codeB { ctxt with tailPos = None } cond stackLevel
             let! tyThen, codeThen = codeB ctxt thenExpr stackLevel
             let! tyElse, codeElse = codeB ctxt elseExpr stackLevel
             do!
@@ -272,7 +272,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         binOpV ctxt e1 e2 Gt stackLevel
     | Expr.IfThenElse(cond, thenExpr, elseExpr, rng) ->
         gen {
-            let! tyCond, codeCond = codeB ctxt cond stackLevel
+            let! tyCond, codeCond = codeB { ctxt with tailPos = None } cond stackLevel
             let! tyThen, codeThen = codeV ctxt thenExpr stackLevel
             let! tyElse, codeElse = codeV ctxt elseExpr stackLevel
             do!
@@ -304,7 +304,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         }
     | Match(scrutinee, cases, _) ->
         gen {
-            let! scrutTy, scrutCode = codeV ctxt scrutinee stackLevel
+            let! scrutTy, scrutCode = codeV { ctxt with tailPos = None } scrutinee stackLevel
 
             // The address directly after the match expression
             let! afterAddr = getFreshSymbolicAddr
@@ -355,7 +355,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                                     List.concat [
                                         prevGuardCode
                                         bodyCode
-                                        [Slide 1]
+                                        [Slide(1, 1)]
                                         [Jump afterAddr]
                                     ]
                                 )
@@ -366,7 +366,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                                     ctxt with
                                         varCtxt = ctxt.varCtxt.Add(varName, { ty = scrutTy ; address = Local(stackLevel + 1) })
                                 }
-                                let! guardTy, guardCode = codeV ctxt' whenCond (stackLevel + 1)
+                                let! guardTy, guardCode = codeV { ctxt' with tailPos = None } whenCond (stackLevel + 1)
                                 do!
                                     if not (Ty.IsEqual guardTy (IntTy(noRange))) then
                                         error $"Expeceted type 'int' as guard expression type, but found '{guardTy}'" whenCond.Range
@@ -380,7 +380,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                                         prevBodyCode
                                         [SymbolicAddress bodyAddr]
                                         bodyCode
-                                        [Slide 1]
+                                        [Slide(1, 1)]
                                         [Jump afterAddr]
                                     ],
                                     List.concat [
@@ -406,7 +406,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                         let! defaultCasesAddr = getFreshSymbolicAddr
                         return (
                             [],
-                            [SymbolicAddress defaultCasesAddr ; Slide 1 ; Halt],
+                            [SymbolicAddress defaultCasesAddr ; Slide(1, 1) ; Halt],
                             defaultCasesAddr
                         )
                     }
@@ -434,7 +434,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                             ctxt with
                                 varCtxt = ctxt.varCtxt.Add(argVar, { ty = argTy ; address = Local(stackLevel + 1) })
                         }
-                        let! guardTy, guardCode = codeV ctxt' whenCond (stackLevel + 1)
+                        let! guardTy, guardCode = codeV { ctxt' with tailPos = None } whenCond (stackLevel + 1)
                         do!
                             if not (Ty.IsEqual guardTy (IntTy(noRange))) then
                                 error $"Expeceted type 'int' as guard expression type, but found '{guardTy}'" whenCond.Range
@@ -453,7 +453,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                             List.concat [
                                 [SymbolicAddress bodyAddr]
                                 bodyCode
-                                [Slide 2]
+                                [Slide(2, 1)]
                                 [Jump afterAddr]
                             ]
                         )
@@ -478,7 +478,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                             List.concat [
                                 [TGetConstructorArg]
                                 bodyCode
-                                [Slide 2]
+                                [Slide(2, 1)]
                                 [Jump afterAddr]
                             ],
                             []
@@ -560,15 +560,15 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         }
     | Let(varName, boundExpr, bodyExpr, rng) ->
         gen {
-            let! tyBound, codeBound = codeV ctxt boundExpr stackLevel
+            let! tyBound, codeBound = codeV { ctxt with tailPos = None } boundExpr stackLevel
             let varEntry = { address = Local(stackLevel + 1); ty = tyBound }
             let ctxt' = { ctxt with varCtxt = ctxt.varCtxt.Add(varName, varEntry) }
             let! tyBody, codeBody = codeV ctxt' bodyExpr (stackLevel + 1)
-            return (tyBody, List.concat [codeBound ; codeBody ; [Slide 1]])
+            return (tyBody, List.concat [codeBound ; codeBody ; [Slide(1, 1)]])
         }
     | LetTuple(varNames, boundExpr, body, rng) ->
         gen {
-            let! tyBound, codeBound = codeV ctxt boundExpr stackLevel
+            let! tyBound, codeBound = codeV { ctxt with tailPos = None } boundExpr stackLevel
             let! componentNameTys, n =
                 match tyBound with
                 | ProdTy(components, _) when components.Length = varNames.Length ->
@@ -587,7 +587,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                     codeBound
                     [GetTuple]
                     codeBody
-                    [Slide n]
+                    [Slide(n, 1)]
                 ]
             )
         }
@@ -598,7 +598,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                 { ctxt with varCtxt = ctxt.varCtxt.Add(name, { ty = ty ; address = Local(stackLevel + i)})}
             let ctxt' = List.fold2 addVarToContext ctxt bindings [1 .. n]
             let! bindingClosures =
-                letAll <| List.map (fun (_,_,e) -> codeV ctxt' e (stackLevel + n)) bindings
+                letAll <| List.map (fun (_,_,e) -> codeV { ctxt' with tailPos = None } e (stackLevel + n)) bindings
             let boundExprTys,pushClosureBlocks = List.unzip bindingClosures
             let rewriteClosureBlocks =
                 List.map2
@@ -621,7 +621,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                     [Alloc n]
                     List.concat rewriteClosureBlocks
                     bodyCode
-                    [Slide n]
+                    [Slide(n, 1)]
                 ]
             )
         }
@@ -651,7 +651,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
                 List.fold2 addFormalToContext ctxt [0..formals.Length-1] formals
             let ctxt'' =
                 List.fold2 addGlobalToContext ctxt' [0..freeVarList.Length-1] (List.zip freeVarList globalVars)
-            let! bodyTy, bodyCode = codeV ctxt'' body 0
+            let! bodyTy, bodyCode = codeV { ctxt'' with tailPos = Some(formals.Length) } body 0
             let funTy = List.fold (fun (ty : Ty) (f : Formal) -> FunTy(f.ty, ty, noRange)) bodyTy formals
             return (
                 funTy,
@@ -670,8 +670,8 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         }
     | Application(fnExpr, args, _) ->
         gen {
-            let! tyFun, codeFun = codeV ctxt fnExpr (stackLevel + args.Length + 3)
-            let! tyCodeArgs = letAll <| List.mapi (fun i e -> codeV ctxt e (stackLevel + (args.Length - 1 - i) + 3)) args
+            let! tyFun, codeFun = codeV { ctxt with tailPos = None } fnExpr (stackLevel + args.Length)
+            let! tyCodeArgs = letAll <| List.mapi (fun i e -> codeV { ctxt with tailPos = None } e (stackLevel + (args.Length - 1 - i))) args
             let formalTys = tyFun.DomTyList
             do!
                 if formalTys.Length < tyCodeArgs.Length then
@@ -694,18 +694,27 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
             let! afterAddr = getFreshSymbolicAddr
             return (
                 tyFun.Apply args.Length,
-                List.concat [
-                    [Mark afterAddr]
-                    pushArgs
-                    codeFun
-                    [Apply]
-                    [SymbolicAddress afterAddr]
-                ]
+                match ctxt.tailPos with
+                | Some(numOuterArgs) ->
+                    List.concat [
+                        pushArgs
+                        codeFun
+                        [Slide(stackLevel + numOuterArgs, args.Length + 1)]
+                        [Apply]
+                    ]
+                | None ->
+                    List.concat [
+                        [Mark afterAddr]
+                        pushArgs
+                        codeFun
+                        [Apply]
+                        [SymbolicAddress afterAddr]
+                    ]
             )
         }
     | ConstructorApplication(name, arg, _) ->
         gen {
-            let! argTy, argCode = codeV ctxt arg stackLevel
+            let! argTy, argCode = codeV { ctxt with tailPos = None } arg stackLevel
             let constructor = ctxt.constructorCtxt[name]
             do!
                 if Ty.IsEqual argTy constructor.contentTy then
@@ -722,7 +731,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         }
     | Tuple(elems, rng) ->
         gen {
-            let! elemTyCodes = letAll <| List.mapi (fun i e -> codeV ctxt e (stackLevel + i)) elems
+            let! elemTyCodes = letAll <| List.mapi (fun i e -> codeV { ctxt with tailPos = None } e (stackLevel + i)) elems
             let elemTys, elemCodes = List.unzip elemTyCodes
             return (
                 ProdTy(elemTys, noRange),
@@ -735,7 +744,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         }
     | RefConstructor(initExpr, _) ->
         gen {
-            let! initExprTy, initExprCode = codeV ctxt initExpr stackLevel
+            let! initExprTy, initExprCode = codeV { ctxt with tailPos = None } initExpr stackLevel
             return (
                 RefTy(initExprTy, noRange),
                 List.concat [
@@ -746,7 +755,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         }
     | Deref(refExpr, rng) ->
         gen {
-            let! refExprTy, refExprCode = codeV ctxt refExpr stackLevel
+            let! refExprTy, refExprCode = codeV { ctxt with tailPos = None } refExpr stackLevel
             let! elemTy =
                 match refExprTy with
                 | RefTy(elemTy, _) ->
@@ -765,8 +774,8 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         }
     | Assign(refExpr, newValExpr, _) ->
         gen {
-            let! newValTy, newValCode = codeV ctxt newValExpr stackLevel
-            let! refExprTy, refExprCode = codeV ctxt refExpr (stackLevel + 1)
+            let! newValTy, newValCode = codeV { ctxt with tailPos = None } newValExpr stackLevel
+            let! refExprTy, refExprCode = codeV { ctxt with tailPos = None } refExpr (stackLevel + 1)
             do!
                 match refExprTy with
                 | RefTy(innerTy, _) ->
@@ -789,7 +798,7 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         }
     | Sequence(firstExpr, secondExpr, rng) ->
         gen {
-            let! firstExprTy, firstExprCode = codeV ctxt firstExpr stackLevel
+            let! firstExprTy, firstExprCode = codeV { ctxt with tailPos = None } firstExpr stackLevel
             let! secondExprTy, secondExprCode = codeV ctxt secondExpr stackLevel
             do!
                 match firstExprTy with

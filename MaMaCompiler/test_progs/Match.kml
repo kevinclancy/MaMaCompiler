@@ -1,0 +1,8 @@
+typedef bool =
+  | True of ()
+  | False of ()
+match (True ()) with
+| True x ->
+    1
+| False x ->
+    2

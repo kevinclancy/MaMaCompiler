@@ -1,0 +1,10 @@
+typedef bool =
+  | True of ()
+  | False of ()
+let a = ref (True ()) in
+a := (False ());
+match !a with
+| True x ->
+    1
+| False x ->
+    2

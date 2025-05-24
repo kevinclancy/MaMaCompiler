@@ -1,0 +1,3 @@
+let z = ref 3 in
+let w = (z := !z + 1) in
+!z

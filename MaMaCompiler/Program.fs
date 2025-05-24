@@ -18,7 +18,7 @@ let write_code (code : Instruction array) (out_filename : string) : unit =
   use writer = new BinaryWriter(stream )
   Array.iter (fun (instr : Instruction) -> writer.Write(instr.Serialization)) code
 
-let compile_and_run (source_filename : string) =
+let compile (source_filename : string) =
   let prog =
     try
       use reader = new StreamReader(source_filename)
@@ -55,8 +55,6 @@ let compile_and_run (source_filename : string) =
   let code' = resolve <| List.concat [code ; [Halt]]
   let out_filename = source_filename.Substring(0, source_filename.Length - 4) + ".bin"
   write_code code' out_filename
-  let result = execute code'
-  printfn "Result Computed: %s" (result.ToString())
   printfn "Output File: %s" out_filename
 
 [<EntryPoint>]
@@ -64,7 +62,7 @@ let main (args : string array) : int =
   if args[0] = "all" then
     for file in Directory.EnumerateFiles("./test_progs") do
       if file.EndsWith(".kml") then
-        compile_and_run file
+        compile file
   else
-    compile_and_run args[0]
+    compile args[0]
   0

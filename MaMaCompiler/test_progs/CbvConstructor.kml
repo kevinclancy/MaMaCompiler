@@ -1,0 +1,9 @@
+typedef bool =
+  | A of int
+  | B of int
+let z = ref 0 in
+match (A (z := !z + 1; 2)) with
+| _ when !z == 1 ->
+    2
+| _ ->
+    7

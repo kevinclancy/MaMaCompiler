@@ -51,9 +51,8 @@ type Instruction =
     | PushLoc of n:int
     /// Push the n-th value of the (0-indexed) global vector onto the stack
     | PushGlob of n:int
-    /// Remove the n values below the top element of the stack,
-    /// but leave the top element on the stack
-    | Slide of n:int
+    /// Remove the n values directly below the top m elements from the stack
+    | Slide of n:int * m:int
     /// Assuming a V-object on top of the stack, pop the V-object and then
     /// push its elements from left to right.
     | GetVec
@@ -194,11 +193,11 @@ type Instruction =
                 /// NOTE: this could be 1 byte instead of 2
                 let loc = (uint n) &&& 0x0000FFFFu
                 opId ||| (loc <<< 8)
-            | Slide(n) ->
+            | Slide(n, m) ->
                 let opId = 0x15u
-                /// NOTE: this could be one byte instead of 2
-                let slideDistance = (uint n) &&& 0x0000FFFFu
-                opId ||| (slideDistance <<< 8)
+                let slideDistance = (uint n) &&& 0x000000FFu
+                let numElemsToKeep = (uint m) &&& 0x000000FFu;
+                opId ||| (slideDistance <<< 8) ||| (numElemsToKeep <<< 16)
             | GetVec ->
                 0x00000016u
             | MkVec(n) ->
