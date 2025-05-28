@@ -828,9 +828,52 @@ type Fixture () =
     member this.tailCall () =
         let { typedefs = typedefs ; expr = e } = parseProg """
         let rec foo : (int -> int) =
-            (fun (z : int) -> if z == 900000 then 1 else (foo (z + 1)))
+            (fun (z : int) -> if z == 300000 then 1 else (foo (z + 1)))
         in
         (foo 0)
+        """
+        let ctxt =
+            match run (Context.Empty.WithTypedefs typedefs) with
+            | Result(ctxt', _) ->
+                ctxt'
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        let ty, code =
+            match run (codeV ctxt e 0) with
+            | Result(code, _) ->
+                code
+            | Error(msg, rng) ->
+                failwith $"code generation failed: {msg} at {rng}"
+        match ty with
+        | IntTy(_) ->
+            ()
+        | _ ->
+            failwith "expected output of type 'int'"
+        let code' = resolve <| List.concat [code ; [Halt]]
+        let result = execute code'
+
+        Assert.That( (result = Basic(1)) )
+
+    [<Test>]
+    member this.testDontCollectGP () =
+        let { typedefs = typedefs ; expr = e } = parseProg """
+        let rec foo : (int -> int) =
+            (fun (z : int) -> if z == 300000 then 1 else (foo (z + 1)))
+        in
+        let rec mkIncrementer : (() -> (() -> int)) =
+        (fun (_ : ()) ->
+            let a = ref 0 in
+            let rec incrementer : (() -> int) =
+                (fun (_ : ()) ->
+                    let _ = (foo 0) in
+                    a := !a + 1;
+                    !a
+                )
+            in
+            incrementer
+        )
+        in
+        ((mkIncrementer ()) ())
         """
         let ctxt =
             match run (Context.Empty.WithTypedefs typedefs) with

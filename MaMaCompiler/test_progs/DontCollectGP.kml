@@ -1,0 +1,17 @@
+let rec foo : (int -> int) =
+    (fun (z : int) -> if z == 300000 then 1 else (foo (z + 1)))
+in
+let rec mkIncrementer : (() -> (() -> int)) =
+  (fun (_ : ()) ->
+    let a = ref 0 in
+    let rec incrementer : (() -> int) =
+      (fun (_ : ()) ->
+        let _ = (foo 0) in
+        a := !a + 1;
+        !a
+      )
+    in
+    incrementer
+  )
+in
+((mkIncrementer ()) ())
