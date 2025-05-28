@@ -670,8 +670,9 @@ and codeV (ctxt : Context) (expr : Expr) (stackLevel : int) : Gen<Ty * List<Inst
         }
     | Application(fnExpr, args, _) ->
         gen {
-            let! tyFun, codeFun = codeV { ctxt with tailPos = None } fnExpr (stackLevel + args.Length)
-            let! tyCodeArgs = letAll <| List.mapi (fun i e -> codeV { ctxt with tailPos = None } e (stackLevel + (args.Length - 1 - i))) args
+            let numAdminElems = match ctxt.tailPos with | Some(_) -> 0 | None -> 1
+            let! tyFun, codeFun = codeV { ctxt with tailPos = None } fnExpr (stackLevel + args.Length + numAdminElems)
+            let! tyCodeArgs = letAll <| List.mapi (fun i e -> codeV { ctxt with tailPos = None } e (stackLevel + (args.Length - 1 - i) + numAdminElems)) args
             let formalTys = tyFun.DomTyList
             do!
                 if formalTys.Length < tyCodeArgs.Length then
